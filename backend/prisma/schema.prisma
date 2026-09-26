@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String?        @unique
+  staff_id       String?        @unique
+  name           String?
+  designation    String?
+  password_hash  String
+  role           String         @default("participant") // participant, judge, admin, organizer
+  must_change_password Boolean  @default(false)
+  temp_pass_key        String?
+  current_session_id   String?
+
+  // Profile fields
+  college              String?
+  year                 String?
+  branch               String?
+  gender               String?
+  dob                  String?
+  phone                String?
+  city                 String?
+  bio                  String?
+  github_url           String?
+  linkedin_url         String?
+  instagram_url        String?
+  portfolio_url        String?
+
+  created_at     DateTime       @default(now())
+  events         Event[]        @relation("EventCreator")
+  teamMembers    TeamMember[]
+  judges         Judge[]
+  resetRequests  PasswordResetRequest[]
+  joinRequests   JoinRequest[]
+}
+
+model Event {
+  id             String         @id @default(uuid())
+  slug           String?        @unique
+  name           String
+  short_description String?
+  full_description  String?
+  category       String?
+  mode           String?
+  location       String?
+  team_size_min  Int?           @default(1)
+  team_size_max  Int?           @default(4)
+  prize_pool     String?
+  organizer_name String?
+  organizer_logo String?
+  banner_url     String?
+
+  show_public_teams    Boolean @default(false)
+  show_public_projects Boolean @default(false)
+  show_public_judges   Boolean @default(false)
+  show_public_results  Boolean @default(false)
+  show_prizes          Boolean @default(false)
+  show_eligibility     Boolean @default(false)
+  show_rules           Boolean @default(false)
+  show_timeline        Boolean @default(false)
+  show_contacts        Boolean @default(false)
+
+  start_date     DateTime
+  end_date       DateTime
+  tracks         Json
+  prizes_config  Json
+  created_by     String
+  creator        User           @relation("EventCreator", fields: [created_by], references: [id])
+  teams          Team[]
+  submissions    Submission[]
+  judges         Judge[]
+  eligibility_items EligibilityItem[]
+  rules             Rule[]
+  prizes            Prize[]
+  timeline_items    TimelineItem[]
+  admin_contacts    AdminContact[]
+}
+
+model EligibilityItem {
+  id          String  @id @default(uuid())
+  event_id    String
+  event       Event   @relation(fields: [event_id], references: [id])
+  title       String
+  description String?
+  sort_order  Int     @default(0)
+}
+
+model Rule {
+  id          String  @id @default(uuid())
+  event_id    String
+  event       Event   @relation(fields: [event_id], references: [id])
+  title       String
+  description String?
+  sort_order  Int     @default(0)
+}
+
+model Prize {
+  id          String  @id @default(uuid())
+  event_id    String
+  event       Event   @relation(fields: [event_id], references: [id])
+  position    String?
+  title       String
+  amount      String?
+  description String?
+  icon_url    String?
+  sort_order  Int     @default(0)
+}
+
+model TimelineItem {
+  id             String    @id @default(uuid())
+  event_id       String
+  event          Event     @relation(fields: [event_id], references: [id])
+  title          String
+  description    String?
+  start_datetime DateTime
+  end_datetime   DateTime?
+  status         String?
+  sort_order     Int       @default(0)
+}
+
+model AdminContact {
+  id          String  @id @default(uuid())
+  event_id    String
+  event       Event   @relation(fields: [event_id], references: [id])
+  name        String
+  photo_url   String?
+  role        String?
+  email       String?
+  phone       String?
+  whatsapp    String?
+  linkedin    String?
+  website     String?
+  sort_order  Int     @default(0)
+}
+
+model Team {
+  id             String         @id @default(uuid())
+  event_id       String
+  event          Event          @relation(fields: [event_id], references: [id])
+  name           String
+  invite_code    String         @unique
+  members        TeamMember[]
+  submissions    Submission[]
+  joinRequests   JoinRequest[]
+}
+
+model JoinRequest {
+  id             String         @id @default(uuid())
+  team_id        String
+  team           Team           @relation(fields: [team_id], references: [id])
+  user_id        String
+  user           User           @relation(fields: [user_id], references: [id])
+  status         String         @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  created_at     DateTime       @default(now())
+
+  @@unique([user_id, team_id])
+}
+
+model TeamMember {
+  id             String         @id @default(uuid())
+  team_id        String
+  team           Team           @relation(fields: [team_id], references: [id])
+  user_id        String
+  user           User           @relation(fields: [user_id], references: [id])
+  
+  @@unique([user_id, team_id])
+}
+
+model Submission {
+  id             String         @id @default(uuid())
+  team_id        String
+  team           Team           @relation(fields: [team_id], references: [id])
+  event_id       String
+  event          Event          @relation(fields: [event_id], references: [id])
+  title          String
+  description    String
+  repo_url       String?
+  demo_video_url String?
+  pdf_url        String?
+  status         String         // draft, submitted
+  submitted_at   DateTime?
+  updated_at     DateTime       @updatedAt
+  assignments    JudgeAssignment[]
+  scores         Score[]
+}
+
+model Judge {
+  id             String         @id @default(uuid())
+  user_id        String
+  user           User           @relation(fields: [user_id], references: [id])
+  event_id       String
+  event          Event          @relation(fields: [event_id], references: [id])
+  
+  display_name   String?
+  photo_url      String?
+  designation    String?
+  company        String?
+  bio            String?
+  linkedin_url   String?
+  show_publicly  Boolean        @default(false)
+  sort_order     Int            @default(0)
+
+  assignments    JudgeAssignment[]
+  scores         Score[]
+}
+
+model JudgeAssignment {
+  id             String         @id @default(uuid())
+  judge_id       String
+  judge          Judge          @relation(fields: [judge_id], references: [id])
+  submission_id  String
+  submission     Submission     @relation(fields: [submission_id], references: [id])
+}
+
+model Score {
+  id             String         @id @default(uuid())
+  judge_id       String
+  judge          Judge          @relation(fields: [judge_id], references: [id])
+  submission_id  String
+  submission     Submission     @relation(fields: [submission_id], references: [id])
+  rubric_item    String
+  raw_score      Float
+  weighted_score Float
+  created_at     DateTime       @default(now())
+}
+
+model InviteToken {
+  id         String   @id @default(uuid())
+  email      String
+  role       String   // judge, admin
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+}
+
+model PasswordResetRequest {
+  id          String   @id @default(uuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id])
+  status      String   @default("PENDING") // PENDING, PASSKEY_GENERATED, RESOLVED, CANCELLED
+  requested_at DateTime @default(now())
+  resolved_at DateTime?
+  tokens      PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id          String   @id @default(uuid())
+  request_id  String
+  request     PasswordResetRequest @relation(fields: [request_id], references: [id])
+  user_id     String
+  token_hash  String
+  expires_at  DateTime
+  used_at     DateTime?
+  created_by  String?  // Admin ID who generated it
+  created_at  DateTime @default(now())
+}

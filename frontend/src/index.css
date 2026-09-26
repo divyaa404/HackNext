@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-color: #F0F0F0;
+    --fg-color: #121212;
+    --card-color: #FFFFFF;
+    --border-color: #121212;
+    --primary-color: #D02020;
+    --secondary-color: #1040C0;
+    --accent-color: #F0C020;
+  }
+
+  .dark {
+    --bg-color: #101010;
+    --fg-color: #F5F5F5;
+    --card-color: #181818;
+    --border-color: #F5F5F5;
+    --primary-color: #E02A2A;
+    --secondary-color: #315FE0;
+    --accent-color: #F0C020;
+  }
+
+  body {
+    @apply bg-bauhaus-bg text-bauhaus-fg transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .bauhaus-card {
+    @apply bg-bauhaus-card border-4 border-bauhaus-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(245,245,245,0.2)] rounded-none;
+  }
+  .bauhaus-button {
+    @apply bg-bauhaus-primary text-white border-4 border-bauhaus-border font-bold uppercase tracking-wider px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(245,245,245,0.2)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all;
+  }
+  .bauhaus-button-secondary {
+    @apply bg-bauhaus-secondary text-white border-4 border-bauhaus-border font-bold uppercase tracking-wider px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(245,245,245,0.2)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all;
+  }
+  .bauhaus-button-accent {
+    @apply bg-bauhaus-accent text-black border-4 border-bauhaus-border font-bold uppercase tracking-wider px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all;
+  }
+}
+
+/* Hide scrollbar globally when using .no-scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,0 +1,186 @@
+export interface TimelineItem {
+  id?: string;
+  title: string;
+  description?: string | null;
+  start_datetime: Date | string;
+  end_datetime?: Date | string | null;
+  status?: string | null;
+  sort_order?: number;
+}
+
+export interface EventWithTimeline {
+  id: string;
+  start_date: Date | string;
+  end_date: Date | string;
+  timeline_items?: TimelineItem[];
+}
+
+export interface RegistrationStatus {
+  isOpen: boolean;
+  isNotOpenYet: boolean;
+  isClosed: boolean;
+  opensAt?: Date;
+  closesAt?: Date;
+  message?: string;
+}
+
+export interface SubmissionStatus {
+  isOpen: boolean;
+  isLocked: boolean;
+  isClosed: boolean;
+  opensAt: Date;
+  closesAt: Date;
+  message?: string;
+}
+
+export function checkRegistrationStatus(event: EventWithTimeline): RegistrationStatus {
+  if (!event) {
+    return {
+      isOpen: true,
+      isNotOpenYet: false,
+      isClosed: false,
+      message: 'Registration is open.'
+    };
+  }
+
+  const now = new Date();
+  const items = event.timeline_items || [];
+
+  // Find timeline milestone related to registration
+  const regItem = items.find(it => {
+    const t = (it.title || '').toLowerCase();
+    return t.includes('registration') || t.includes('register') || t.includes('sign up');
+  });
+
+  let opensAt: Date | undefined;
+  let closesAt: Date | undefined;
+
+  if (regItem) {
+    opensAt = new Date(regItem.start_datetime);
+    if (regItem.end_datetime) {
+      closesAt = new Date(regItem.end_datetime);
+    } else {
+      // If no end_datetime, look for next milestone or default to event end_date
+      const nextMilestone = items.find(it => new Date(it.start_datetime) > (opensAt as Date));
+      closesAt = nextMilestone ? new Date(nextMilestone.start_datetime) : new Date(event.end_date || event.start_date);
+    }
+  } else {
+    // Default registration opens at event start_date and closes at event end_date
+    opensAt = event.start_date ? new Date(event.start_date) : undefined;
+    closesAt = new Date(event.end_date || event.start_date);
+  }
+
+  if (opensAt && !isNaN(opensAt.getTime()) && now < opensAt) {
+    return {
+      isOpen: false,
+      isNotOpenYet: true,
+      isClosed: false,
+      opensAt,
+      closesAt,
+      message: `Registration opens on ${opensAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+    };
+  }
+
+  if (closesAt && !isNaN(closesAt.getTime()) && now > closesAt) {
+    return {
+      isOpen: false,
+      isNotOpenYet: false,
+      isClosed: true,
+      opensAt,
+      closesAt,
+      message: `Registration has closed. The deadline was ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+    };
+  }
+
+  return {
+    isOpen: true,
+    isNotOpenYet: false,
+    isClosed: false,
+    opensAt,
+    closesAt,
+    message: closesAt && !isNaN(closesAt.getTime())
+      ? `Registration is open until ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+      : 'Registration is open.'
+  };
+}
+
+export function checkSubmissionStatus(event: EventWithTimeline): SubmissionStatus {
+  if (!event) {
+    return {
+      isOpen: true,
+      isLocked: false,
+      isClosed: false,
+      opensAt: new Date(Date.now() - 1000),
+      closesAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      message: 'Submissions are open.'
+    };
+  }
+
+  const now = new Date();
+  const items = event.timeline_items || [];
+
+  // Find timeline milestone related to submission
+  const subItem = items.find(it => {
+    const t = (it.title || '').toLowerCase();
+    return t.includes('submission') || t.includes('submitting') || t.includes('project submission');
+  });
+
+  let opensAt: Date = new Date(event.start_date);
+  let closesAt: Date = new Date(event.end_date);
+
+  if (subItem) {
+    opensAt = new Date(subItem.start_datetime);
+    closesAt = subItem.end_datetime ? new Date(subItem.end_datetime) : new Date(event.end_date);
+  } else {
+    // 1. Determine submission opening from hackathon start / submission open
+    const startItem = items.find(it => {
+      const t = (it.title || '').toLowerCase();
+      return t.includes('hackathon start') || t.includes('hacking start') || t.includes('submission open') || t.includes('submissions open') || t.includes('hacking begin') || t.includes('starts');
+    });
+    if (startItem) {
+      opensAt = new Date(startItem.start_datetime);
+    }
+
+    // 2. Determine submission deadline
+    const endItem = items.find(it => {
+      const t = (it.title || '').toLowerCase();
+      return t.includes('submission deadline') || t.includes('submission close') || t.includes('submissions end') || t.includes('hackathon end') || t.includes('hacking end') || t.includes('deadline');
+    });
+    if (endItem) {
+      closesAt = new Date(endItem.end_datetime || endItem.start_datetime);
+    }
+  }
+
+  if (!isNaN(opensAt.getTime()) && now < opensAt) {
+    return {
+      isOpen: false,
+      isLocked: true,
+      isClosed: false,
+      opensAt,
+      closesAt,
+      message: `Submissions are locked. The submission window opens on ${opensAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+    };
+  }
+
+  if (!isNaN(closesAt.getTime()) && now > closesAt) {
+    return {
+      isOpen: false,
+      isLocked: false,
+      isClosed: true,
+      opensAt,
+      closesAt,
+      message: `Submissions are closed. The submission deadline was ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+    };
+  }
+
+  return {
+    isOpen: true,
+    isLocked: false,
+    isClosed: false,
+    opensAt,
+    closesAt,
+    message: closesAt && !isNaN(closesAt.getTime())
+      ? `Submissions are open until ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+      : 'Submissions are open.'
+  };
+}

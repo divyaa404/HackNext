@@ -1,0 +1,13 @@
+# Acceptance Report
+
+## T1 - Core
+- Status: Pending
+
+## T2 - Judging
+- Status: Pending
+
+## T3 - Public
+- Status: Pending
+
+## T4 - Stretch
+- Status: Pending
