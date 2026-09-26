@@ -81,11 +81,11 @@ export const ExportData = () => {
       // Download all as separate files
       Object.keys(allData).forEach(key => {
         const csv = convertToCSV(allData[key]);
-        downloadCSV(`dogfood_export_${key}.csv`, csv);
+        downloadCSV(`hacknext_export_${key}.csv`, csv);
       });
     } else {
       const csv = convertToCSV(data);
-      downloadCSV(`dogfood_export_${selectedTable}.csv`, csv);
+      downloadCSV(`hacknext_export_${selectedTable}.csv`, csv);
     }
   };
 

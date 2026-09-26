@@ -7,7 +7,7 @@ set "PROJECT_ROOT=%~dp0"
 pushd "%PROJECT_ROOT%"
 
 echo ========================================
-echo  DOGFOOD PLATFORM
+echo  HACKNEXT PLATFORM
 echo ========================================
 echo.
 echo Project root:
@@ -53,26 +53,39 @@ if not exist ".env" (
     copy ".env.example" ".env" > nul
 )
 
-echo Please ensure Docker Desktop is running before selecting Option 1 or 3.
+echo Please ensure Docker Desktop is running before selecting Option 1, 3, or 4.
 echo.
 echo 1) Run with Docker (Recommended for Evaluators)
 echo 2) Run Locally (Dev-Only - Requires Node.js ^& Postgres)
 echo 3) Open Interactive CLI (Docker)
-echo 4) Exit
+echo 4) Reset Docker Database ^& Volumes (Fixes credentials / fresh start)
+echo 5) Exit
 echo.
-set /p choice="Select an option (1, 2, 3, or 4): "
+set /p choice="Select an option (1, 2, 3, 4, or 5): "
 
 if "%choice%"=="1" goto opt1
 if "%choice%"=="2" goto opt2
 if "%choice%"=="3" goto opt3
 if "%choice%"=="4" goto opt4
+if "%choice%"=="5" goto opt5
 
 echo Invalid option. Exiting.
 pause
 popd
 exit /b 1
 
+:opt5
+popd
+exit /b 0
+
 :opt4
+echo.
+echo Stopping Docker containers and removing database volumes...
+docker compose -f "%COMPOSE_FILE%" down -v
+echo.
+echo Database volume has been completely reset.
+echo You can now start fresh with Option 1.
+pause
 popd
 exit /b 0
 

@@ -1,16 +1,32 @@
 import { PrismaClient } from '@prisma/client';
+import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
 
+async function ensureDatabaseReady() {
+  try {
+    await prisma.user.count();
+  } catch (err: any) {
+    if (err?.code === 'P2021' || (err?.message && (err.message.includes('does not exist') || err.message.includes('P2021')))) {
+      console.log('⚡ Initializing database schema (prisma db push)...');
+      execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    } else {
+      throw err;
+    }
+  }
+}
+
 async function main() {
+  await ensureDatabaseReady();
+
   // Try to find the first organizer
   let organizer = await prisma.user.findFirst({ where: { role: 'organizer' } });
   
   if (!organizer) {
     organizer = await prisma.user.create({
       data: {
-        email: 'organizer@dogfood.com',
-        name: 'DogFood Organizer',
+        email: 'organizer@hacknext.com',
+        name: 'HackNext Organizer',
         password_hash: 'hashedpassword',
         role: 'organizer',
       }
@@ -18,7 +34,7 @@ async function main() {
   }
 
   // Check if event already exists
-  let event = await prisma.event.findUnique({ where: { slug: 'dogfood-72-hour-hackathon' } });
+  let event = await prisma.event.findUnique({ where: { slug: 'hacknext-72-hour-hackathon' } });
   
   if (event) {
     console.log('Event already seeded.');
@@ -27,8 +43,8 @@ async function main() {
 
   event = await prisma.event.create({
     data: {
-      name: 'DogFood 72-Hour Hackathon',
-      slug: 'dogfood-72-hour-hackathon',
+      name: 'HackNext 72-Hour Hackathon',
+      slug: 'hacknext-72-hour-hackathon',
       short_description: 'Build the future of coding tools.',
       full_description: '<p>Join us for 72 hours of intense building where you will create next-generation AI tools.</p>',
       category: 'Open Innovation',
@@ -83,7 +99,7 @@ async function main() {
       },
       admin_contacts: {
         create: [
-          { name: 'Indresh Suresh', role: 'Organizer', email: 'indresh@dogfood.com', sort_order: 1 }
+          { name: 'Indresh Suresh', role: 'Organizer', email: 'indresh@hacknext.com', sort_order: 1 }
         ]
       }
     }
@@ -92,7 +108,7 @@ async function main() {
   // Seed judges
   const judgeUser = await prisma.user.create({
     data: {
-      email: 'judge@dogfood.com',
+      email: 'judge@hacknext.com',
       name: 'Priya Rao',
       password_hash: 'hashed',
       role: 'judge'

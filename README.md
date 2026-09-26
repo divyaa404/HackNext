@@ -1,4 +1,4 @@
-# DogFood Platform
+# HackNext Platform
 
 A portable, self-hostable hackathon management, submission, and multi-dimensional judging platform. Built to run on **ANY machine with zero manual configuration or hardcoded credentials.**
 
@@ -10,16 +10,16 @@ Clone the repository and launch the platform in two commands:
 
 ### Linux / macOS / WSL:
 ```bash
-git clone https://github.com/indresh404/DogFood.git
-cd DogFood
+git clone https://github.com/indresh404/HackNext.git
+cd HackNext
 ./setup.sh
 docker compose up
 ```
 
 ### Windows (PowerShell):
 ```powershell
-git clone https://github.com/indresh404/DogFood.git
-cd DogFood
+git clone https://github.com/indresh404/HackNext.git
+cd HackNext
 .\setup.ps1
 docker compose up
 ```
@@ -51,9 +51,9 @@ All configuration is loaded via `.env` (derived from `.env.example`). No hardcod
 
 | Environment Variable | Description | Default |
 | :--- | :--- | :--- |
-| `DB_USER` | PostgreSQL user | `dogfood` |
-| `DB_PASSWORD` | PostgreSQL password | Auto-generated / `dogfoodpassword` |
-| `DB_NAME` | PostgreSQL database name | `dogfood` |
+| `DB_USER` | PostgreSQL user | `hacknext` |
+| `DB_PASSWORD` | PostgreSQL password | Auto-generated / `hacknextpassword` |
+| `DB_NAME` | PostgreSQL database name | `hacknext` |
 | `DB_PORT` | PostgreSQL host exposed port | `5432` |
 | `BACKEND_PORT` | Express API server port | `4000` |
 | `FRONTEND_PORT` | Vite React frontend port | `3000` |

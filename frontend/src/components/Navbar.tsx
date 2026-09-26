@@ -18,7 +18,7 @@ export const Navbar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/admin/login" className="text-xl font-bold text-indigo-600">
-              DogFood Platform
+              HackNext Platform
             </Link>
           </div>
           <div className="flex items-center space-x-4">

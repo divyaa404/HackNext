@@ -1,6 +1,6 @@
-# DogFood - Project Commands Guide
+# HackNext - Project Commands Guide
 
-This document lists all the essential commands required to build, run, and manage the DogFood Hackathon Platform.
+This document lists all the essential commands required to build, run, and manage the HackNext Platform.
 
 ---
 
@@ -55,20 +55,20 @@ If you want to manually build the Docker images:
 ```bash
 # Build Backend Image
 cd backend
-docker build -t dogfood-backend .
+docker build -t hacknext-backend .
 
 # Build Frontend Image
 cd frontend
-docker build -t dogfood-frontend .
+docker build -t hacknext-frontend .
 ```
 
 ### Run Individual Containers
 ```bash
 # Run Backend Container (exposing port 4000)
-docker run -p 4000:4000 dogfood-backend
+docker run -p 4000:4000 hacknext-backend
 
 # Run Frontend Container (exposing port 3000)
-docker run -p 3000:3000 dogfood-frontend
+docker run -p 3000:3000 hacknext-frontend
 ```
 
 ---

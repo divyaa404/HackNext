@@ -52,7 +52,7 @@ const checkAndInitOrganizer = async () => {
       const email = process.env.INITIAL_ORGANIZER_EMAIL?.trim();
       const password = process.env.INITIAL_ORGANIZER_PASSWORD?.trim();
       const name = process.env.INITIAL_ORGANIZER_NAME?.trim() || 'Root Organizer';
-      const orgName = process.env.INITIAL_ORG_NAME?.trim() || 'Hackathon Platform';
+      const orgName = process.env.INITIAL_ORG_NAME?.trim() || 'HackNext Platform';
 
       if (email && password) {
         const staff_id = 'ORG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -70,13 +70,13 @@ const checkAndInitOrganizer = async () => {
             must_change_password: false
           }
         });
-        console.log(`\n[DogFood Setup] Created initial Root Organizer (${staff_id} / ${email}) from environment variables.`);
+        console.log(`\n[HackNext Setup] Created initial Root Organizer (${staff_id} / ${email}) from environment variables.`);
       } else {
-        console.log('\n[DogFood Setup] No organizer account detected. Complete first-run setup at /setup in your browser or run setup.sh.');
+        console.log('\n[HackNext Setup] No organizer account detected. Complete first-run setup at /setup in your browser or run setup.sh.');
       }
     }
   } catch (err) {
-    console.warn('[DogFood Setup] Could not verify organizer setup status on startup:', err);
+    console.warn('[HackNext Setup] Could not verify organizer setup status on startup:', err);
   }
 };
 

@@ -1,5 +1,5 @@
 # ==============================================================================
-# Hackathon Platform - Windows PowerShell Interactive Setup Script
+# HackNext Platform - Windows PowerShell Interactive Setup Script
 # ==============================================================================
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -7,7 +7,7 @@ Set-Location $ProjectRoot
 
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host "  🚀 Hackathon Platform - First-Time Setup Wizard (Windows)" -ForegroundColor Cyan
+Write-Host "  🚀 HackNext Platform - First-Time Setup Wizard (Windows)" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Configuring environment variables and ports for your machine..."

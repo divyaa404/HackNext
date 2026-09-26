@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 pushd "%~dp0.."
 
 echo ===================================================
-echo   DogFood Platform - Full Environment Setup
+echo   HackNext Platform - Full Environment Setup
 echo ===================================================
 echo.
 

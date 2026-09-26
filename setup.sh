@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# Hackathon Platform - Interactive Setup Script (Portable by Design)
+# HackNext Platform - Interactive Setup Script (Portable by Design)
 # ==============================================================================
 
 set -e
@@ -11,7 +11,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
 echo "=================================================================="
-echo "  🚀 Hackathon Platform - First-Time Setup Wizard"
+echo "  🚀 HackNext Platform - First-Time Setup Wizard"
 echo "=================================================================="
 echo ""
 echo "Configuring environment variables and ports for your machine..."

@@ -64,10 +64,10 @@ router.post('/create', requireAuth, async (req, res) => {
 
       validEvent = await prisma.event.create({
         data: {
-          name: 'DogFood Hackathon',
-          slug: `dogfood-hackathon-${Date.now()}`,
+          name: 'HackNext Hackathon',
+          slug: `hacknext-hackathon-${Date.now()}`,
           short_description: 'Default hackathon event',
-          full_description: 'Welcome to DogFood Hackathon!',
+          full_description: 'Welcome to HackNext Hackathon!',
           start_date: new Date(),
           end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           tracks: [],

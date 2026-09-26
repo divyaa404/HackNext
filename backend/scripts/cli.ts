@@ -34,6 +34,35 @@ function getLocalIp() {
   return '127.0.0.1';
 }
 
+async function ensureDatabaseReady(): Promise<number> {
+  try {
+    return await prisma.user.count({ where: { role: 'organizer' } });
+  } catch (err: any) {
+    if (err?.code === 'P2021' || (err?.message && (err.message.includes('does not exist') || err.message.includes('P2021')))) {
+      console.log(YELLOW + '⚡ Database tables not initialized. Running database schema sync (prisma db push)...' + RESET);
+      try {
+        execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+        console.log(GREEN + '✅ Database schema initialized successfully!\n' + RESET);
+        return await prisma.user.count({ where: { role: 'organizer' } });
+      } catch (pushErr) {
+        console.error(RED + '❌ Failed to push Prisma schema to database:' + RESET, pushErr);
+        throw pushErr;
+      }
+    }
+
+    if (err?.message && (err.message.includes('Authentication failed') || err.message.includes('password authentication failed') || err.name === 'PrismaClientInitializationError')) {
+      console.log(RED + '\n❌ Database Authentication Error:' + RESET);
+      console.log(YELLOW + 'The database credentials in .env do not match the existing PostgreSQL database volume.' + RESET);
+      console.log('If you updated credentials or project name after starting Docker, the existing pgdata volume still uses the old credentials.');
+      console.log('\n' + BOLD + '👉 Fix in Docker (Wipe old volume and re-initialize with new credentials):' + RESET);
+      console.log(CYAN + '   docker compose down -v' + RESET);
+      console.log(CYAN + '   docker compose up -d' + RESET);
+      console.log('\n👉 Or update .env DB_USER and DB_PASSWORD to match your existing database credentials.\n');
+    }
+    throw err;
+  }
+}
+
 async function resetMasterPassword() {
   console.log(CYAN + '\n[Reset Organizer Password]' + RESET);
   const staffId = await question('Enter the Master Organizer ID Number (e.g. ORG-XXXX): ');
@@ -88,7 +117,7 @@ async function resetDatabase() {
 }
 
 async function createOrganizer() {
-  const orgCount = await prisma.user.count({ where: { role: 'organizer' } });
+  const orgCount = await ensureDatabaseReady();
   if (orgCount >= 1) {
     console.log(RED + '\n❌ Only one organization can be made on this server/machine.' + RESET);
     return;
@@ -140,10 +169,10 @@ async function showHelp() {
   const port = process.env.PORT || 4000;
   const localIp = getLocalIp();
 
-  console.log(MAGENTA + '\n📖 DogFood CLI Help Section' + RESET);
+  console.log(MAGENTA + '\n📖 HackNext CLI Help Section' + RESET);
   console.log('----------------------------------------------------');
   console.log(BOLD + 'Overview:' + RESET);
-  console.log('This CLI tool securely manages the DogFood platform.');
+  console.log('This CLI tool securely manages the HackNext platform.');
   console.log('NOTE: Only ONE organization can be created per machine.');
   
   console.log('\n' + BOLD + 'Network & Access Info:' + RESET);
@@ -157,7 +186,7 @@ async function showHelp() {
   console.log('4. Keep your master Organizer password secure. Do NOT reset database in production unless absolutely necessary.');
   
   console.log('\n' + BOLD + 'Important Links:' + RESET);
-  console.log('Website / Documentation: https://dogfood-platform.com (Placeholder)');
+  console.log('Website / Documentation: https://hacknext-platform.com (Placeholder)');
   console.log('----------------------------------------------------\n');
 }
 
@@ -187,10 +216,10 @@ async function showSystemInfo() {
 
 async function mainMenu() {
   while (true) {
-    const orgCount = await prisma.user.count({ where: { role: 'organizer' } });
+    const orgCount = await ensureDatabaseReady();
 
     console.log(CYAN + '\n=======================================' + RESET);
-    console.log(BOLD + '  DogFood Platform - Control Panel CLI' + RESET);
+    console.log(BOLD + '  HackNext Platform - Control Panel CLI' + RESET);
     console.log(CYAN + '=======================================' + RESET);
 
     if (orgCount === 0) {
@@ -237,7 +266,10 @@ async function mainMenu() {
 }
 
 mainMenu().catch(err => {
-  console.error(err);
+  if (!err?.message?.includes('Authentication failed') && err?.name !== 'PrismaClientInitializationError') {
+    console.error(err);
+  }
   rl.close();
   prisma.$disconnect();
+  process.exit(1);
 });

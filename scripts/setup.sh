@@ -5,7 +5,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo "==================================================="
-echo "  DogFood Platform - Full Environment Setup"
+echo "  HackNext Platform - Full Environment Setup"
 echo "==================================================="
 echo ""
 echo "Project root: $PROJECT_ROOT"

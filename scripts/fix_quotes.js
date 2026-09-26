@@ -9,7 +9,7 @@ function walkDir(dir, callback) {
   });
 }
 
-walkDir('d:/college/PROJECTS/DogFood/frontend/src', function(filePath) {
+walkDir(path.join(__dirname, '../frontend/src'), function(filePath) {
   if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
     let content = fs.readFileSync(filePath, 'utf8');
     let originalContent = content;

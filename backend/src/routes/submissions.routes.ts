@@ -151,8 +151,8 @@ router.post('/assign-equal', requireAuth, requireRole('organizer', 'admin'), asy
       let adminUser = await prisma.user.findFirst({ where: { role: { in: ['organizer', 'admin'] } } });
       targetEvent = await prisma.event.create({
         data: {
-          name: 'DogFood Hackathon',
-          slug: `dogfood-hackathon-${Date.now()}`,
+          name: 'HackNext Hackathon',
+          slug: `hacknext-hackathon-${Date.now()}`,
           start_date: new Date(),
           end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           tracks: [],

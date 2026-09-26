@@ -43,7 +43,7 @@ const AnimatedAmount = ({ text }: { text: string }) => {
 export const HackathonDetails = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
-  const activeSlug = slug || 'dogfood-72-hour-hackathon';
+  const activeSlug = slug || 'hacknext-72-hour-hackathon';
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

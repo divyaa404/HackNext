@@ -1,1 +1,1 @@
-﻿import { PrismaClient } from "@prisma/client"; const p = new PrismaClient(); p.event.updateMany({where: {slug: null}, data: {slug: "dogfood-72-hour-hackathon"}}).then(r => console.log("Fixed", r)).finally(() => p.$disconnect());
+import { PrismaClient } from "@prisma/client"; const p = new PrismaClient(); p.event.updateMany({where: {slug: null}, data: {slug: "hacknext-72-hour-hackathon"}}).then(r => console.log("Fixed", r)).finally(() => p.$disconnect());

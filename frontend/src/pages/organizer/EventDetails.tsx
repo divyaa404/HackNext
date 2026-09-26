@@ -100,7 +100,7 @@ export const EventDetails = () => {
       setMinTeamSize(response.data.team_size_min !== undefined && response.data.team_size_min !== null ? response.data.team_size_min : 1);
       setMaxTeamSize(response.data.team_size_max !== undefined && response.data.team_size_max !== null ? response.data.team_size_max : 4);
       
-      const pubRes = await api.get(`/public/events/${response.data.slug || 'dogfood-72-hour-hackathon'}/public`);
+      const pubRes = await api.get(`/public/events/${response.data.slug || 'hacknext-72-hour-hackathon'}/public`);
       setPrizes(pubRes.data.prizes || []);
       setRules(pubRes.data.rules || []);
       setEligibility(pubRes.data.eligibility_items || []);

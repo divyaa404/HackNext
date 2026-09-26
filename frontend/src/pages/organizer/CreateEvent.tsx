@@ -113,7 +113,7 @@ export const CreateEvent = () => {
               <input
                 type="text"
                 required
-                placeholder="e.g. DogFood Hackathon 2026"
+                placeholder="e.g. HackNext Hackathon 2026"
                 className="w-full px-4 py-3 border-2 border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold text-sm focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition shadow-sm rounded-none"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

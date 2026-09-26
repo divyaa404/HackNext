@@ -1,7 +1,7 @@
 {
-  "name": "dogfood-backend",
+  "name": "hacknext-backend",
   "version": "1.0.0",
-  "description": "DogFood Backend",
+  "description": "HackNext Backend",
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
