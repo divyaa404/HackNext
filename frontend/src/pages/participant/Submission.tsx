@@ -87,6 +87,15 @@ export const Submission = () => {
       return;
     }
     
+    if (!description.trim()) {
+      setError('Please provide an idea abstract and project description.');
+      return;
+    }
+    if (description.length > 1000) {
+      setError(`Abstract & Description cannot exceed 1000 characters (currently ${description.length}).`);
+      return;
+    }
+    
     setSubmitting(true);
     setError('');
     setSuccess(false);
@@ -255,10 +264,15 @@ export const Submission = () => {
 
               {/* Description preview */}
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1">
-                  Idea Abstract
-                </span>
-                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed line-clamp-4 italic bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">
+                    Idea Abstract
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-bold">
+                    {description.length}/1000 chars
+                  </span>
+                </div>
+                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap italic bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs max-h-48 overflow-y-auto">
                   {description || 'No description provided yet.'}
                 </p>
               </div>
@@ -357,13 +371,19 @@ export const Submission = () => {
               
               {/* Project Title */}
               <div>
-                <label className="block text-xs font-black uppercase tracking-widest mb-1 text-bauhaus-text">
-                  Project Title *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-black uppercase tracking-widest text-bauhaus-text">
+                    Project Title *
+                  </label>
+                  <span className="text-[11px] font-bold text-zinc-400">
+                    {title.length}/100
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={title}
-                  onChange={e => setTitle(e.target.value)}
+                  maxLength={100}
+                  onChange={e => setTitle(e.target.value.slice(0, 100))}
                   disabled={!isLeader || !subStatus.isOpen}
                   required
                   placeholder="e.g. AI-Powered Smart Assistant"
@@ -373,18 +393,36 @@ export const Submission = () => {
 
               {/* Idea Description */}
               <div>
-                <label className="block text-xs font-black uppercase tracking-widest mb-1 text-bauhaus-text">
-                  Idea Abstract & Description *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-black uppercase tracking-widest text-bauhaus-text">
+                    Idea Abstract & Description *
+                  </label>
+                  <span className={`text-[11px] font-black tracking-wider ${
+                    description.length >= 1000 
+                      ? 'text-red-600 font-bold' 
+                      : description.length >= 850 
+                      ? 'text-amber-500' 
+                      : 'text-zinc-400'
+                  }`}>
+                    {description.length} / 1000 characters
+                  </span>
+                </div>
                 <textarea
                   value={description}
-                  onChange={e => setDescription(e.target.value)}
+                  onChange={e => setDescription(e.target.value.slice(0, 1000))}
                   disabled={!isLeader || !subStatus.isOpen}
                   required
+                  maxLength={1000}
                   rows={5}
-                  placeholder="Describe what your project does, the problem it solves, architecture, and technology stack used..."
+                  placeholder="Describe what your project does, the problem it solves, architecture, and technology stack used (Max 1000 characters)..."
                   className="w-full px-4 py-3 border-4 border-bauhaus-border bg-bauhaus-bg text-bauhaus-text focus:outline-none focus:border-bauhaus-primary font-medium text-sm leading-relaxed disabled:bg-zinc-200 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed"
                 />
+                <div className="flex justify-between items-center text-[10px] text-zinc-500 mt-1">
+                  <span>Keep your abstract clear and concise for judging evaluation.</span>
+                  {description.length >= 950 && (
+                    <span className="text-red-500 font-bold">Approaching 1000 character limit!</span>
+                  )}
+                </div>
               </div>
 
               {/* Links Grid */}

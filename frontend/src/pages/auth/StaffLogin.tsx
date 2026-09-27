@@ -42,17 +42,17 @@ export const StaffLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md border border-gray-100">
+    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white dark:bg-zinc-900 p-8 border-4 border-black dark:border-white shadow-[8px_8px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_rgba(255,255,255,0.2)]">
         {setupRequired && (
-          <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-400 rounded-lg text-amber-900 text-xs flex flex-col space-y-2 shadow-sm">
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 rounded-lg text-amber-900 dark:text-amber-300 text-xs flex flex-col space-y-2 shadow-sm">
             <div className="font-bold flex items-center gap-1.5">
               <span>⚠️ No Organizer Account Found</span>
             </div>
-            <p className="text-zinc-600">This instance has not been initialized yet. Run the first-time setup wizard to create your Root Organizer account.</p>
-            <Link 
-              to="/setup" 
-              className="inline-flex items-center justify-center py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider rounded transition"
+            <p className="text-zinc-600 dark:text-zinc-400">This instance has not been initialized yet. Run the first-time setup wizard to create your Root Organizer account.</p>
+            <Link
+              to="/setup"
+              className="inline-flex items-center justify-center py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition"
             >
               Start First-Run Setup &rarr;
             </Link>
@@ -60,83 +60,108 @@ export const StaffLogin = () => {
         )}
 
         <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-red-100 dark:bg-red-950 text-red-600 border-2 border-red-500 flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_rgba(255,255,255,0.2)]">
             <ShieldCheck className="w-6 h-6" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">Admin Portal</h2>
-        
-        {/* Role Selection Boxes (Aesthetic) */}
+
+        <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-2 border-red-500 font-mono text-[10px] font-black uppercase tracking-wider mb-2 mx-auto flex justify-center">
+          <span>
+            {selectedRole === 'organizer' && 'Root Organizer Access'}
+            {selectedRole === 'admin' && 'Staff Administrator Access'}
+            {selectedRole === 'judge' && 'Judge & Evaluator Access'}
+          </span>
+        </div>
+        <h1 className="text-2xl font-black text-center text-zinc-900 dark:text-white mb-6 uppercase tracking-tight">
+          {selectedRole === 'organizer' && 'Organizer Login'}
+          {selectedRole === 'admin' && 'Admin Login'}
+          {selectedRole === 'judge' && 'Judge Login'}
+        </h1>
+
+        {/* Role Selection Boxes */}
         <div className="grid grid-cols-3 gap-3 mb-8">
-          <button 
+          <button
             type="button"
             onClick={() => setSelectedRole('organizer')}
-            className={`flex flex-col items-center justify-center p-3 rounded-lg border ${selectedRole === 'organizer' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'} transition`}
+            className={`flex flex-col items-center justify-center p-3 border-2 font-black text-xs uppercase tracking-wider transition ${selectedRole === 'organizer' ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-[3px_3px_0px_rgba(220,38,38,1)]' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-black dark:hover:border-zinc-500'}`}
           >
-            <UserCog className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Organizer</span>
+            <UserCog className={`w-5 h-5 mb-1 ${selectedRole === 'organizer' ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`} />
+            <span>Organizer</span>
           </button>
-          
-          <button 
+
+          <button
             type="button"
             onClick={() => setSelectedRole('admin')}
-            className={`flex flex-col items-center justify-center p-3 rounded-lg border ${selectedRole === 'admin' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'} transition`}
+            className={`flex flex-col items-center justify-center p-3 border-2 font-black text-xs uppercase tracking-wider transition ${selectedRole === 'admin' ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-[3px_3px_0px_rgba(220,38,38,1)]' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-black dark:hover:border-zinc-500'}`}
           >
-            <Users className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Admin</span>
+            <Users className={`w-5 h-5 mb-1 ${selectedRole === 'admin' ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`} />
+            <span>Admin</span>
           </button>
-          
-          <button 
+
+          <button
             type="button"
             onClick={() => setSelectedRole('judge')}
-            className={`flex flex-col items-center justify-center p-3 rounded-lg border ${selectedRole === 'judge' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'} transition`}
+            className={`flex flex-col items-center justify-center p-3 border-2 font-black text-xs uppercase tracking-wider transition ${selectedRole === 'judge' ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-[3px_3px_0px_rgba(220,38,38,1)]' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-black dark:hover:border-zinc-500'}`}
           >
-            <Gavel className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Judge</span>
+            <Gavel className={`w-5 h-5 mb-1 ${selectedRole === 'judge' ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`} />
+            <span>Judge</span>
           </button>
         </div>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4 text-sm">{error}</div>}
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-2 border-red-400 p-3 mb-4 text-sm font-bold">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+            <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
+              {selectedRole === 'organizer' ? 'Organizer Staff ID' : selectedRole === 'admin' ? 'Admin Staff ID' : 'Judge Staff ID'}
+            </label>
             <input
               type="text"
               value={staffId}
               onChange={e => setStaffId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-              placeholder="e.g. ORG-X7K4M92Q"
+              className="w-full px-3 py-2.5 border-2 border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-red-500 dark:focus:border-red-500 font-mono text-sm transition"
+              placeholder={
+                selectedRole === 'organizer' ? 'e.g. ORG-X7K4M92Q' :
+                selectedRole === 'admin' ? 'e.g. ADM-94A1F2C0' :
+                'e.g. JDG-B06C884F'
+              }
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10"
+                className="w-full px-3 py-2.5 pr-10 border-2 border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-red-500 dark:focus:border-red-500 text-sm transition"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
-          <button type="submit" className="w-full bg-indigo-900 text-white py-2 px-4 rounded-md hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition font-medium">
+          <button
+            type="submit"
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-2.5 px-4 font-black text-sm uppercase tracking-wider border-2 border-black dark:border-white shadow-[4px_4px_0px_rgba(220,38,38,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+          >
             Secure Login
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-          <p className="text-sm text-gray-500 mb-2">Are you a participant?</p>
-          <Link to="/login" className="text-indigo-600 font-medium hover:text-indigo-800 transition">
+        <div className="mt-8 pt-6 border-t-2 border-zinc-200 dark:border-zinc-800 text-center">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 font-medium uppercase tracking-wider">Are you a participant?</p>
+          <Link to="/login" className="text-red-600 dark:text-red-400 font-black text-sm hover:underline uppercase tracking-wider transition">
             Go to Participant Portal &rarr;
           </Link>
         </div>

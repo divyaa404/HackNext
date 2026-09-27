@@ -10,6 +10,7 @@ export default {
       colors: {
         'bauhaus-bg': 'var(--bg-color)',
         'bauhaus-fg': 'var(--fg-color)',
+        'bauhaus-text': 'var(--fg-color)',
         'bauhaus-card': 'var(--card-color)',
         'bauhaus-border': 'var(--border-color)',
         'bauhaus-primary': 'var(--primary-color)',

@@ -79,7 +79,7 @@ export const Profile = () => {
         year: data.year || '',
         branch: data.branch || '',
         gender: data.gender || '',
-        dob: data.dob || '',
+        dob: data.dob ? (data.dob.includes('T') ? data.dob.split('T')[0] : data.dob) : '',
         phone: data.phone || '',
         city: data.city || '',
         bio: data.bio || '',
@@ -97,9 +97,42 @@ export const Profile = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+
+    // Phone: allow digits only
+    if (name === 'phone') {
+      const digitsOnly = value.replace(/\D/g, '');
+      setFormData({
+        ...formData,
+        phone: digitsOnly
+      });
+      return;
+    }
+
+    // Bio: hard cap at 500 characters
+    if (name === 'bio') {
+      setFormData({
+        ...formData,
+        bio: value.slice(0, 500)
+      });
+      return;
+    }
+
+    if (name === 'dob' && value) {
+      const parts = value.split('-');
+      // Prevent year from extending beyond 4 digits when typed in Chrome/Edge
+      if (parts[0] && parts[0].length > 4) {
+        parts[0] = parts[0].slice(0, 4);
+        setFormData({
+          ...formData,
+          dob: parts.join('-')
+        });
+        return;
+      }
+    }
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -114,6 +147,15 @@ export const Profile = () => {
       setError('Full Name is required.');
       setSaving(false);
       return;
+    }
+
+    if (formData.dob) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (formData.dob > todayStr) {
+        setError('Date of Birth cannot be in the future.');
+        setSaving(false);
+        return;
+      }
     }
 
     try {
@@ -437,7 +479,9 @@ export const Profile = () => {
                         value={formData.phone} 
                         onChange={handleChange} 
                         required 
-                        placeholder="+91 9876543210"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="9876543210"
                         className="w-full px-4 py-3 border-4 border-bauhaus-border bg-bauhaus-bg text-bauhaus-text focus:outline-none focus:border-bauhaus-primary font-bold text-sm" 
                       />
                     </div>
@@ -460,6 +504,8 @@ export const Profile = () => {
                       <input 
                         type="date" 
                         name="dob" 
+                        max={new Date().toISOString().split('T')[0]}
+                        min="1920-01-01"
                         value={formData.dob} 
                         onChange={handleChange} 
                         className="w-full px-4 py-3 border-4 border-bauhaus-border bg-bauhaus-bg text-bauhaus-text focus:outline-none focus:border-bauhaus-primary font-bold text-sm" 
@@ -484,12 +530,18 @@ export const Profile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-widest mb-1 text-bauhaus-text">About / Bio (Introduce Yourself)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-black uppercase tracking-widest text-bauhaus-text">About / Bio (Introduce Yourself)</label>
+                      <span className={`text-[11px] font-bold ${formData.bio.length >= 500 ? 'text-red-600' : 'text-zinc-500'}`}>
+                        {formData.bio.length} / 500
+                      </span>
+                    </div>
                     <textarea 
                       name="bio" 
                       value={formData.bio} 
                       onChange={handleChange} 
                       rows={3}
+                      maxLength={500}
                       placeholder="e.g. Full-stack developer passionate about AI systems and UI design..."
                       className="w-full px-4 py-3 border-4 border-bauhaus-border bg-bauhaus-bg text-bauhaus-text focus:outline-none focus:border-bauhaus-primary font-medium text-sm leading-relaxed" 
                     />
@@ -541,8 +593,6 @@ export const Profile = () => {
                         <option value="2nd Year">2nd Year</option>
                         <option value="3rd Year">3rd Year</option>
                         <option value="4th Year">4th Year</option>
-                        <option value="5th Year+">5th Year+</option>
-                        <option value="Graduated">Graduated / Working Professional</option>
                       </select>
                     </div>
                   </div>

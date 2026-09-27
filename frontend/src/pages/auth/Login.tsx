@@ -73,7 +73,7 @@ export const Login = () => {
               </button>
             </div>
           </div>
-          <button type="submit" className="w-full bg-bauhaus-primary text-white py-4 px-4 border-4 border-bauhaus-border hover:bg-bauhaus-secondary font-black uppercase tracking-widest text-lg transition-colors">
+          <button type="submit" className="w-full bg-red-600 text-white py-4 px-4 border-4 border-bauhaus-border hover:bg-red-700 font-black uppercase tracking-widest text-lg transition-colors">
             Enter Dashboard
           </button>
         </form>

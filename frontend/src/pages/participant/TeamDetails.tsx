@@ -17,7 +17,6 @@ import {
   Lock,
   Eye
 } from 'lucide-react';
-import { getPublicOrigin } from '../../utils/origin';
 import { getSubmissionStatus, SubmissionStatus } from '../../utils/timeline';
 
 const GithubIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -79,10 +78,7 @@ export const TeamDetails = () => {
 
   const copyCode = () => {
     if (!team?.invite_code) return;
-    const origin = getPublicOrigin();
-    const leaderName = team.members?.[0]?.user?.name || 'Team Leader';
-    const message = `Team: ${team.name}\nLeader: ${leaderName}\nInvite Code: ${team.invite_code}\nJoin Link: ${origin}/participant/team/join\n\nUse this invite code to join our team on the hackathon platform!`;
-    navigator.clipboard.writeText(message);
+    navigator.clipboard.writeText(team.invite_code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };

@@ -99,17 +99,17 @@ export const OrganizerDashboard = () => {
             </Link>
           </div>
 
-          {/* Card 2: Staff & Judge Provisioning */}
+          {/* Card 2: Judge Management */}
           <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center font-black border-2 border-black dark:border-white shadow-sm">
                 <Gavel className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                2. Judge & Admin Staffing
+                2. Judge Management
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
-                Provision judges and assistant admins with secure, human-friendly Staff IDs (e.g. <span className="font-mono font-bold text-red-600">JDG-B06C884F</span>) and temporary passkeys with zero manual credential sharing.
+                Provision judges with secure Staff IDs (e.g. <span className="font-mono font-bold text-red-600">JDG-B06C884F</span>) and temporary passkeys with zero manual credential sharing.
               </p>
             </div>
             <Link
@@ -121,14 +121,36 @@ export const OrganizerDashboard = () => {
             </Link>
           </div>
 
-          {/* Card 3: Multi-Factor Rubrics */}
+          {/* Card 3: Admin Management */}
+          <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center font-black border-2 border-black dark:border-white shadow-sm">
+                <ShieldCheck className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+                3. Admin Management
+              </h3>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
+                Provision co-organizers and assistant admins with secure Staff IDs (e.g. <span className="font-mono font-bold text-red-600">ADM-C7A4192B</span>) and temporary passkeys.
+              </p>
+            </div>
+            <Link
+              to="/organizer/admins"
+              className="inline-flex items-center text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-200 hover:underline gap-1 pt-2"
+            >
+              <span>Manage Admins</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {/* Card 4: Multi-Factor Rubrics */}
           <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center font-black border-2 border-black dark:border-white shadow-sm">
                 <Sliders className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                3. Evaluation Rubrics
+                4. Evaluation Rubrics
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
                 Configure 4-factor scoring rubrics (Innovation, Technical Complexity, UI/UX Polish, Presentation Delivery) totaling 100 points, tracked with real-time per-project evaluation timers.
@@ -143,14 +165,14 @@ export const OrganizerDashboard = () => {
             </Link>
           </div>
 
-          {/* Card 4: Participants & Submissions */}
+          {/* Card 5: Participants & Submissions */}
           <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center font-black border-2 border-black dark:border-white shadow-sm">
                 <Users className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                4. Team & Submission Roster
+                5. Team & Submission Roster
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
                 Oversee student registrations, solo vs team enrollments, manage join requests, and inspect project slide decks, video demos, and repositories in a unified dashboard.
@@ -165,14 +187,14 @@ export const OrganizerDashboard = () => {
             </Link>
           </div>
 
-          {/* Card 5: Export Data & Analytics */}
+          {/* Card 6: Export Data & Analytics */}
           <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center font-black border-2 border-black dark:border-white shadow-sm">
                 <FileSpreadsheet className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                5. Data Export & CSV Reports
+                6. Data Export & CSV Reports
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
                 Export all evaluation marksheets, weighted scores, team rosters, and audit logs into standard CSV spreadsheets ready for external reporting or awards ceremony computation.
@@ -187,14 +209,14 @@ export const OrganizerDashboard = () => {
             </Link>
           </div>
 
-          {/* Card 6: Offline-First Reliability */}
+          {/* Card 7: Offline-First Reliability */}
           <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center font-black border-2 border-black dark:border-white shadow-sm">
                 <CheckCircle2 className="w-6 h-6 text-emerald-600" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-                6. Online / Offline Sync
+                7. Online / Offline Sync
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
                 Built-in connection monitoring keeps judges and organizers informed of network status with local cache safety, ensuring score inputs are never lost during intermittent wifi outages.
@@ -332,14 +354,23 @@ export const OrganizerDashboard = () => {
               <span>Event Operations Quick Access</span>
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              <Link
+                to="/organizer/admins"
+                className="p-3 bg-zinc-50 dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 rounded-lg hover:border-red-600 transition flex flex-col items-center text-center space-y-1"
+              >
+                <ShieldCheck className="w-5 h-5 text-red-600" />
+                <span className="text-xs font-black uppercase text-zinc-900 dark:text-white">Admins</span>
+                <span className="text-[10px] text-zinc-500">Manage Admins</span>
+              </Link>
+
               <Link
                 to="/organizer/judges"
                 className="p-3 bg-zinc-50 dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 rounded-lg hover:border-red-600 transition flex flex-col items-center text-center space-y-1"
               >
                 <Gavel className="w-5 h-5 text-red-600" />
                 <span className="text-xs font-black uppercase text-zinc-900 dark:text-white">Judges</span>
-                <span className="text-[10px] text-zinc-500">Provision Staff IDs</span>
+                <span className="text-[10px] text-zinc-500">Manage Judges</span>
               </Link>
 
               <Link

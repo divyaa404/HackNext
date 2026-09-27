@@ -11,37 +11,84 @@ router.post('/create', requireAuth, requireRole('organizer', 'admin'), async (re
   try {
     const { role, name, email, designation } = req.body;
     if (!role || !['judge', 'admin'].includes(role)) {
-      return res.status(400).json({ error: 'Valid role required' });
+      return res.status(400).json({ error: 'Valid role required (judge or admin)' });
+    }
+
+    // Clean email: convert empty string/whitespace to null so unique constraint on email doesn't fail
+    const cleanEmail = email && typeof email === 'string' && email.trim().length > 0 ? email.trim().toLowerCase() : null;
+
+    if (cleanEmail) {
+      const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
+      if (existingUser) {
+        return res.status(400).json({ error: `A user with email ${cleanEmail} already exists` });
+      }
     }
 
     const prefix = role === 'judge' ? 'JDG-' : 'ADM-';
-    const staff_id = prefix + crypto.randomBytes(4).toString('hex').toUpperCase();
+    
+    // Ensure unique staff_id
+    let staff_id = '';
+    let isUnique = false;
+    while (!isUnique) {
+      staff_id = prefix + crypto.randomBytes(4).toString('hex').toUpperCase();
+      const existing = await prisma.user.findUnique({ where: { staff_id } });
+      if (!existing) isUnique = true;
+    }
+
     const tempPassword = crypto.randomBytes(6).toString('hex');
     
     const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(tempPassword, salt);
 
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         staff_id,
         role,
-        name,
-        email,
-        designation,
+        name: name && typeof name === 'string' && name.trim().length > 0 ? name.trim() : null,
+        email: cleanEmail,
+        designation: designation && typeof designation === 'string' && designation.trim().length > 0 ? designation.trim() : (role === 'judge' ? 'Judge' : 'Admin'),
         password_hash,
         temp_pass_key: tempPassword,
         must_change_password: true
       }
     });
 
+    // If role is judge, link to all hackathon events
+    if (role === 'judge') {
+      try {
+        const events = await prisma.event.findMany();
+        for (const evt of events) {
+          const existing = await prisma.judge.findFirst({
+            where: { user_id: newUser.id, event_id: evt.id }
+          });
+          if (!existing) {
+            await prisma.judge.create({
+              data: {
+                user_id: newUser.id,
+                event_id: evt.id,
+                display_name: newUser.name || newUser.email || newUser.staff_id,
+                designation: newUser.designation || 'Judge',
+                show_publicly: false
+              }
+            });
+          }
+        }
+      } catch (judgeErr) {
+        console.warn('Note: Could not link Judge record to event:', judgeErr);
+      }
+    }
+
     res.json({ 
       staff_id,
-      tempPassword
+      tempPassword,
+      name: newUser.name,
+      email: newUser.email,
+      designation: newUser.designation
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error: any) {
+    console.error('Invite create error:', error);
+    res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 });
 
