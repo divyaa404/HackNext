@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
+import { AuthContext } from '../../context/AuthContext';
 
 const AnimatedAmount = ({ text }: { text: string }) => {
   const [current, setCurrent] = useState<number | null>(null);
@@ -41,6 +42,7 @@ const AnimatedAmount = ({ text }: { text: string }) => {
 };
 
 export const HackathonDetails = () => {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const activeSlug = slug || 'dogfood-72-hour-hackathon';
@@ -167,10 +169,32 @@ export const HackathonDetails = () => {
               )}
             </div>
 
-            <div className="flex gap-4">
-              <Link to="/participant/team/create" className="bauhaus-button inline-block text-center">
-                Join / Create Team
-              </Link>
+            <div className="flex flex-wrap gap-3">
+              {user?.role === 'participant' ? (
+                <>
+                  <Link to="/participant/team" className="bauhaus-button inline-block text-center">
+                    My Team & Project →
+                  </Link>
+                  <Link to="/participant/submission" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.2)] inline-block text-center">
+                    Submit Project
+                  </Link>
+                  <Link to="/participant/team/join" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.2)] inline-block text-center">
+                    Join Team
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/signup" className="bauhaus-button inline-block text-center">
+                    Register & Participate →
+                  </Link>
+                  <Link to="/login" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.2)] inline-block text-center">
+                    Sign In
+                  </Link>
+                  <Link to="/participant/team/create" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.2)] inline-block text-center">
+                    Create Team
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           
