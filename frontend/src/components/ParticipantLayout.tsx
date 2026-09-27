@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { User, Users, FileText, LogOut, X, Sun, Moon, UserCircle, Menu, PlusCircle, LogIn, UserPlus, Trophy } from 'lucide-react';
+import { User, Users, FileText, LogOut, X, Sun, Moon, UserCircle, Menu, PlusCircle, LogIn, UserPlus, Trophy, LayoutDashboard, Award, Shield } from 'lucide-react';
 
 export const ParticipantLayout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -58,14 +58,52 @@ export const ParticipantLayout = () => {
     }
   }, [theme]);
 
-  const navLinks = [
-    { label: 'Overview', path: '/', icon: User },
-    ...(showResults ? [{ label: 'Results', path: '/participant/results', icon: Trophy }] : []),
-    { label: 'My Team', path: '/participant/team', icon: Users },
-    { label: 'Join Team', path: '/participant/team/join', icon: PlusCircle },
-    { label: 'Submission', path: '/participant/submission', icon: FileText },
-    { label: 'Profile', path: '/participant/profile', icon: UserCircle },
-  ];
+  // Strict role-based navigation links
+  let navLinks = [{ label: 'Overview', path: '/', icon: User }];
+
+  if (showResults) {
+    navLinks.push({ label: 'Results', path: '/participant/results', icon: Trophy });
+  }
+
+  if (user?.role === 'participant') {
+    navLinks = [
+      { label: 'Overview', path: '/', icon: User },
+      ...(showResults ? [{ label: 'Results', path: '/participant/results', icon: Trophy }] : []),
+      { label: 'My Team', path: '/participant/team', icon: Users },
+      { label: 'Join Team', path: '/participant/team/join', icon: PlusCircle },
+      { label: 'Submission', path: '/participant/submission', icon: FileText },
+      { label: 'Profile', path: '/participant/profile', icon: UserCircle },
+    ];
+  } else if (user?.role === 'organizer') {
+    navLinks = [
+      { label: 'Overview', path: '/', icon: User },
+      { label: 'Organizer Console', path: '/organizer', icon: LayoutDashboard },
+      { label: 'Manage Events', path: '/organizer/events', icon: FileText },
+      { label: 'Participants', path: '/organizer/participants', icon: Users },
+      ...(showResults ? [{ label: 'Results', path: '/participant/results', icon: Trophy }] : []),
+    ];
+  } else if (user?.role === 'admin') {
+    navLinks = [
+      { label: 'Overview', path: '/', icon: User },
+      { label: 'Admin Console', path: '/admin/judges', icon: Shield },
+      { label: 'Submissions', path: '/admin/submissions', icon: FileText },
+      { label: 'Certificates', path: '/admin/certificates', icon: Award },
+      ...(showResults ? [{ label: 'Results', path: '/participant/results', icon: Trophy }] : []),
+    ];
+  } else if (user?.role === 'judge') {
+    navLinks = [
+      { label: 'Overview', path: '/', icon: User },
+      { label: 'Judge Portal', path: '/judge', icon: Trophy },
+      ...(showResults ? [{ label: 'Results', path: '/participant/results', icon: Trophy }] : []),
+    ];
+  }
+
+  const getProfileRoute = () => {
+    if (user?.role === 'organizer') return '/organizer';
+    if (user?.role === 'admin') return '/admin/judges';
+    if (user?.role === 'judge') return '/judge';
+    return '/participant/profile';
+  };
 
   return (
     <div className="min-h-screen bg-bauhaus-bg text-bauhaus-fg font-sans selection:bg-bauhaus-primary selection:text-white flex">
@@ -135,13 +173,18 @@ export const ParticipantLayout = () => {
               ) : (
                 <div className="flex items-center space-x-2">
                   <Link
-                    to="/participant/profile"
+                    to={getProfileRoute()}
                     className="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-2 border-black dark:border-zinc-600 flex items-center gap-2 transition"
                   >
                     <div className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">
-                      {(user as any)?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'P'}
+                      {(user as any)?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <span>{(user as any)?.name || user?.email?.split('@')[0] || 'My Profile'}</span>
+                    {user.role !== 'participant' && (
+                      <span className="px-1.5 py-0.5 bg-red-600 text-white text-[9px] font-black uppercase rounded tracking-wider">
+                        {user.role}
+                      </span>
+                    )}
                   </Link>
                   <button
                     onClick={() => setShowLogoutConfirm(true)}

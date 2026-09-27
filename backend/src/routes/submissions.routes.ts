@@ -51,7 +51,7 @@ router.get('/my-submission', requireAuth, async (req, res) => {
 });
 
 // Create or update submission
-router.post('/', requireAuth, upload.single('pdf'), async (req, res) => {
+router.post('/', requireAuth, requireRole('participant'), upload.single('pdf'), async (req, res) => {
   try {
     const userId = (req as any).user.id;
     const { title, description, repo_url, demo_video_url } = req.body;

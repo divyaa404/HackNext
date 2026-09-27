@@ -70,7 +70,7 @@ router.post('/:id/reset', requireAuth, requireRole('organizer', 'admin'), async 
 });
 
 // Update my profile
-router.put('/profile', requireAuth, async (req, res) => {
+router.put('/profile', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const userId = (req as any).user.id;
     const { name, college, year, branch, gender, dob, phone, city, bio, github_url, linkedin_url, instagram_url, portfolio_url } = req.body;

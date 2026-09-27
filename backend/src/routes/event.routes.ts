@@ -102,16 +102,19 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get organizer's events
+// Get organizer's/admin's events
 router.get('/my-events', requireAuth, requireRole('organizer', 'admin'), async (req, res) => {
   try {
+    const user = (req as any).user;
+    const whereClause = user.role === 'admin' ? {} : { created_by: user.id };
     const events = await prisma.event.findMany({
-      where: { created_by: (req as any).user.id },
+      where: whereClause,
       include: {
         _count: {
           select: { teams: true, submissions: true, judges: true }
         }
-      }
+      },
+      orderBy: { start_date: 'desc' }
     });
     res.json(events);
   } catch (error) {

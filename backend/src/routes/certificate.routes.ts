@@ -13,7 +13,7 @@ if (!fs.existsSync(CERTIFICATES_DIR)) {
   fs.mkdirSync(CERTIFICATES_DIR, { recursive: true });
 }
 
-// Generate SVG Certificate content locally
+// Generate SVG Certificate content locally with customizable coordinates & template background
 function generateCertificateSvg(params: {
   certNo: string;
   recipientName: string;
@@ -23,95 +23,114 @@ function generateCertificateSvg(params: {
   eventName: string;
   issueDate: string;
   signatureHash: string;
+  templateImageUrl?: string | null;
+  config?: any;
 }): string {
-  const { certNo, recipientName, type, title, teamName, eventName, issueDate, signatureHash } = params;
+  const { certNo, recipientName, type, title, teamName, eventName, issueDate, signatureHash, templateImageUrl, config = {} } = params;
 
   const isWinner1 = type === 'WINNER_1';
   const isWinner2 = type === 'WINNER_2';
   const isWinner3 = type === 'WINNER_3';
   const isWinner = isWinner1 || isWinner2 || isWinner3;
 
-  const primaryColor = isWinner1 ? '#eab308' : isWinner2 ? '#94a3b8' : isWinner3 ? '#d97706' : '#dc2626';
-  const badgeTitle = isWinner1 ? '1ST PLACE WINNER' : isWinner2 ? '2ND PLACE WINNER' : isWinner3 ? '3RD PLACE WINNER' : 'OFFICIAL PARTICIPATION';
-  const subtitle = isWinner 
+  const primaryColor = config.primary_color || (isWinner1 ? '#eab308' : isWinner2 ? '#94a3b8' : isWinner3 ? '#d97706' : '#dc2626');
+  const badgeTitle = config.badge_title || (isWinner1 ? '1ST PLACE WINNER' : isWinner2 ? '2ND PLACE WINNER' : isWinner3 ? '3RD PLACE WINNER' : (type === 'PARTICIPANT' ? 'OFFICIAL PARTICIPATION' : title.toUpperCase()));
+  const subtitle = config.subtitle || (isWinner 
     ? `For securing ${title.toUpperCase()} at` 
-    : 'For outstanding active participation and project development in';
+    : 'For outstanding active participation and project development in');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" style="background:#ffffff; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+  const nameX = Number(config.name_x ?? 600);
+  const nameY = Number(config.name_y ?? 325);
+  const nameFontSize = Number(config.name_font_size ?? 46);
+  const nameColor = config.name_color || '#dc2626';
+  const fontFamily = config.font_family || "'Inter', system-ui, -apple-system, sans-serif";
+  const textAlign = config.text_align || 'middle';
+
+  const hasCustomBg = templateImageUrl && templateImageUrl.trim().length > 0 && !templateImageUrl.includes('certificate-default.png');
+  const gradId = `borderGrad_${certNo.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" style="background:#ffffff; font-family: ${fontFamily};">
     <defs>
-      <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="${primaryColor}" />
         <stop offset="50%" stop-color="#18181b" />
         <stop offset="100%" stop-color="${primaryColor}" />
       </linearGradient>
     </defs>
 
-    <!-- Outer Decorative Border -->
-    <rect x="20" y="20" width="1160" height="760" fill="#ffffff" stroke="#18181b" stroke-width="8"/>
-    <rect x="35" y="35" width="1130" height="730" fill="#fafafa" stroke="url(#borderGrad)" stroke-width="4"/>
-    <rect x="45" y="45" width="1110" height="710" fill="#ffffff" stroke="#e4e4e7" stroke-width="2"/>
+    ${hasCustomBg ? `
+      <!-- Uploaded Template Background -->
+      <image href="${templateImageUrl}" x="0" y="0" width="1200" height="800" preserveAspectRatio="none" />
+    ` : `
+      <!-- Outer Decorative Border -->
+      <rect x="20" y="20" width="1160" height="760" fill="#ffffff" stroke="#18181b" stroke-width="8"/>
+      <rect x="35" y="35" width="1130" height="730" fill="#fafafa" stroke="url(#${gradId})" stroke-width="4"/>
+      <rect x="45" y="45" width="1110" height="710" fill="#ffffff" stroke="#e4e4e7" stroke-width="2"/>
 
-    <!-- Geometric Corner Accents -->
-    <polygon points="20,20 100,20 20,100" fill="${primaryColor}" />
-    <polygon points="1180,20 1100,20 1180,100" fill="${primaryColor}" />
-    <polygon points="20,780 100,780 20,700" fill="#18181b" />
-    <polygon points="1180,780 1100,780 1180,700" fill="#18181b" />
+      <!-- Geometric Corner Accents -->
+      <polygon points="20,20 100,20 20,100" fill="${primaryColor}" />
+      <polygon points="1180,20 1100,20 1180,100" fill="${primaryColor}" />
+      <polygon points="20,780 100,780 20,700" fill="#18181b" />
+      <polygon points="1180,780 1100,780 1180,700" fill="#18181b" />
 
-    <!-- Top Badge -->
-    <g transform="translate(600, 110)">
-      <rect x="-180" y="-20" width="360" height="40" fill="${primaryColor}" stroke="#18181b" stroke-width="3" rx="4"/>
-      <text x="0" y="7" text-anchor="middle" font-size="16" font-weight="900" fill="#ffffff" letter-spacing="3">${badgeTitle}</text>
-    </g>
+      <!-- Top Badge -->
+      <g transform="translate(600, 110)">
+        <rect x="-180" y="-20" width="360" height="40" fill="${primaryColor}" stroke="#18181b" stroke-width="3" rx="4"/>
+        <text x="0" y="7" text-anchor="middle" font-size="16" font-weight="900" fill="#ffffff" letter-spacing="3">${badgeTitle}</text>
+      </g>
 
-    <!-- Certificate Header -->
-    <text x="600" y="190" text-anchor="middle" font-size="40" font-weight="900" fill="#18181b" letter-spacing="4">HACKNEXT CERTIFICATE</text>
-    <text x="600" y="225" text-anchor="middle" font-size="16" font-weight="700" fill="#71717a" letter-spacing="2">THIS CERTIFICATE IS PROUDLY PRESENTED TO</text>
+      <!-- Certificate Header -->
+      <text x="600" y="190" text-anchor="middle" font-size="40" font-weight="900" fill="#18181b" letter-spacing="4">HACKNEXT CERTIFICATE</text>
+      <text x="600" y="225" text-anchor="middle" font-size="16" font-weight="700" fill="#71717a" letter-spacing="2">THIS CERTIFICATE IS PROUDLY PRESENTED TO</text>
 
-    <!-- Decorative Line -->
-    <line x1="350" y1="245" x2="850" y2="245" stroke="#e4e4e7" stroke-width="2"/>
+      <!-- Decorative Line -->
+      <line x1="350" y1="245" x2="850" y2="245" stroke="#e4e4e7" stroke-width="2"/>
+    `}
 
-    <!-- Recipient Name -->
-    <text x="600" y="325" text-anchor="middle" font-size="46" font-weight="900" fill="#dc2626" letter-spacing="1">${recipientName}</text>
-    <line x1="300" y1="355" x2="900" y2="355" stroke="#18181b" stroke-width="3" stroke-dasharray="8 4"/>
+    <!-- Configurable Recipient Name Overlay -->
+    <text x="${nameX}" y="${nameY}" text-anchor="${textAlign}" font-size="${nameFontSize}" font-weight="900" fill="${nameColor}" letter-spacing="1">${recipientName}</text>
+    ${!hasCustomBg ? `<line x1="${nameX - 300}" y1="${nameY + 30}" x2="${nameX + 300}" y2="${nameY + 30}" stroke="#18181b" stroke-width="3" stroke-dasharray="8 4"/>` : ''}
 
-    <!-- Details Paragraph -->
-    <text x="600" y="410" text-anchor="middle" font-size="20" font-weight="600" fill="#3f3f46">${subtitle}</text>
-    <text x="600" y="455" text-anchor="middle" font-size="32" font-weight="900" fill="#18181b">${eventName}</text>
-    ${teamName ? `<text x="600" y="500" text-anchor="middle" font-size="18" font-weight="700" fill="#71717a">Representing Team: <tspan fill="#18181b" font-weight="900">${teamName}</tspan></text>` : ''}
+    ${!hasCustomBg ? `
+      <!-- Details Paragraph -->
+      <text x="600" y="410" text-anchor="middle" font-size="20" font-weight="600" fill="#3f3f46">${subtitle}</text>
+      <text x="600" y="455" text-anchor="middle" font-size="32" font-weight="900" fill="#18181b">${eventName}</text>
+      ${teamName ? `<text x="600" y="500" text-anchor="middle" font-size="18" font-weight="700" fill="#71717a">Representing Team: <tspan fill="#18181b" font-weight="900">${teamName}</tspan></text>` : ''}
 
-    <!-- Lower Divider -->
-    <line x1="150" y1="560" x2="1050" y2="560" stroke="#e4e4e7" stroke-width="2"/>
+      <!-- Lower Divider -->
+      <line x1="150" y1="560" x2="1050" y2="560" stroke="#e4e4e7" stroke-width="2"/>
 
-    <!-- Signatures & Verification Details -->
-    <!-- Left: Date -->
-    <g transform="translate(240, 640)">
-      <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" stroke-width="2"/>
-      <text x="0" y="-15" text-anchor="middle" font-size="16" font-weight="900" fill="#18181b">${issueDate}</text>
-      <text x="0" y="25" text-anchor="middle" font-size="13" font-weight="800" fill="#71717a" letter-spacing="1">DATE OF ISSUANCE</text>
-    </g>
+      <!-- Signatures & Verification Details -->
+      <!-- Left: Date -->
+      <g transform="translate(240, 640)">
+        <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" stroke-width="2"/>
+        <text x="0" y="-15" text-anchor="middle" font-size="16" font-weight="900" fill="#18181b">${issueDate}</text>
+        <text x="0" y="25" text-anchor="middle" font-size="13" font-weight="800" fill="#71717a" letter-spacing="1">DATE OF ISSUANCE</text>
+      </g>
 
-    <!-- Middle: Official Seal / Security Stamp -->
-    <g transform="translate(600, 640)">
-      <circle cx="0" cy="0" r="45" fill="#fafafa" stroke="${primaryColor}" stroke-width="4"/>
-      <circle cx="0" cy="0" r="38" fill="none" stroke="#18181b" stroke-width="1.5" stroke-dasharray="4 2"/>
-      <text x="0" y="-8" text-anchor="middle" font-size="10" font-weight="900" fill="#18181b" letter-spacing="1">VERIFIED</text>
-      <text x="0" y="8" text-anchor="middle" font-size="13" font-weight="900" fill="${primaryColor}">★ ★ ★</text>
-      <text x="0" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="#71717a">HACKNEXT</text>
-    </g>
+      <!-- Middle: Official Seal / Security Stamp -->
+      <g transform="translate(600, 640)">
+        <circle cx="0" cy="0" r="45" fill="#fafafa" stroke="${primaryColor}" stroke-width="4"/>
+        <circle cx="0" cy="0" r="38" fill="none" stroke="#18181b" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="0" y="-8" text-anchor="middle" font-size="10" font-weight="900" fill="#18181b" letter-spacing="1">VERIFIED</text>
+        <text x="0" y="8" text-anchor="middle" font-size="13" font-weight="900" fill="${primaryColor}">★ ★ ★</text>
+        <text x="0" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="#71717a">HACKNEXT</text>
+      </g>
 
-    <!-- Right: Organizing Authority -->
-    <g transform="translate(960, 640)">
-      <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" stroke-width="2"/>
-      <text x="0" y="-15" text-anchor="middle" font-size="16" font-weight="900" fill="#18181b">HackNext Jury &amp; Lead</text>
-      <text x="0" y="25" text-anchor="middle" font-size="13" font-weight="800" fill="#71717a" letter-spacing="1">ORGANIZER SIGNATURE</text>
-    </g>
+      <!-- Right: Organizing Authority -->
+      <g transform="translate(960, 640)">
+        <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" stroke-width="2"/>
+        <text x="0" y="-15" text-anchor="middle" font-size="16" font-weight="900" fill="#18181b">HackNext Jury &amp; Lead</text>
+        <text x="0" y="25" text-anchor="middle" font-size="13" font-weight="800" fill="#71717a" letter-spacing="1">ORGANIZER SIGNATURE</text>
+      </g>
+    ` : ''}
 
     <!-- Bottom Verification ID & Hash -->
     <g transform="translate(600, 735)">
-      <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#a1a1aa" letter-spacing="1">
+      <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#71717a" letter-spacing="1">
         CERTIFICATE ID: <tspan fill="#18181b" font-weight="900">${certNo}</tspan> • VERIFY AT: <tspan fill="#dc2626">/verify/certificate/${certNo}</tspan>
       </text>
-      <text x="0" y="16" text-anchor="middle" font-size="9" font-family="monospace" fill="#a1a1aa">
+      <text x="0" y="16" text-anchor="middle" font-size="9" font-family="monospace" fill="#71717a">
         SIG: ${signatureHash.substring(0, 32)}...
       </text>
     </g>
@@ -274,6 +293,11 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
     const generatedCertificates: any[] = [];
     const issueDateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
+    // Load event templates for styling
+    const templates = await prisma.certificateTemplate.findMany({ where: { event_id: eventId } });
+    const tmplMap = new Map<string, any>();
+    templates.forEach(t => tmplMap.set(t.type, t));
+
     // Determine 1st, 2nd, 3rd place winners
     const winner1Team = rankedTeams[0]?.team;
     const winner2Team = rankedTeams[1]?.team;
@@ -298,6 +322,10 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
         title = '3rd Place Winner';
       }
 
+      const activeTmpl = tmplMap.get(type) || tmplMap.get('PARTICIPANT');
+      const tmplConfig = activeTmpl?.config || {};
+      const tmplImageUrl = activeTmpl?.template_image_url;
+
       for (const member of teamItem.members) {
         if (!member.user) continue;
 
@@ -314,11 +342,13 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
           certNo,
           recipientName,
           type,
-          title,
+          title: activeTmpl?.title || title,
           teamName: teamItem.name,
           eventName: event.name,
           issueDate: issueDateStr,
-          signatureHash
+          signatureHash,
+          templateImageUrl: tmplImageUrl,
+          config: tmplConfig
         });
 
         const svgFilePath = path.join(eventCertDir, `${certNo}.svg`);

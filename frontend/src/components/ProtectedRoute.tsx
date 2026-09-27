@@ -22,6 +22,9 @@ export const ProtectedRoute = ({ allowedRoles }: Props) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    if (user.role === 'organizer') return <Navigate to="/organizer" replace />;
+    if (user.role === 'admin') return <Navigate to="/admin/judges" replace />;
+    if (user.role === 'judge') return <Navigate to="/judge" replace />;
     return <Navigate to="/" replace />;
   }
 

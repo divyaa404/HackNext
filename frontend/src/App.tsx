@@ -78,7 +78,7 @@ function App() {
             <Route path="/results" element={<Results />} />
             <Route path="/participant/results" element={<Results />} />
 
-            <Route element={<ProtectedRoute allowedRoles={['participant', 'organizer', 'admin']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['participant']} />}>
               <Route path="/participant/profile" element={<Profile />} />
               <Route path="/participant/team" element={<TeamDetails />} />
               <Route path="/participant/team/create" element={<CreateTeam />} />

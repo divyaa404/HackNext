@@ -1,5 +1,5 @@
 # HackNext Acceptance Test Report
-Generated: 2026-09-27 19:44:53 UTC
+Generated: 2026-09-27 20:13:52 UTC
 Overall Status: PASSED (100%)
 
 ## Summary of Claims
@@ -14,7 +14,7 @@ Overall Status: PASSED (100%)
 - [✓] Check 2: Event Lifecycle & 5-Step Timeline with +1 Hour Extension
     * Details: Phases: Registration, Project Submission, Evaluation, Community Voting, Result Out
 - [✓] Check 3: Team Formation & Project Submissions
-    * Details: Team: 4288604c-f4bd-4211-b3ae-a47c203e43d3, Sub: 0c11707c-e97a-4b49-803e-0e09ba16777a
+    * Details: Team: db5bba95-a3ce-44e4-84f0-c73aa2bcfe30, Sub: bf5b9d21-391b-4078-91b8-fe8d5a7a549a
 
 ### T2 - PASSED (4/4 Checks Passed)
 - [✓] Check 4: Scoring Rubrics & Multi-Factor Evaluation
@@ -22,7 +22,7 @@ Overall Status: PASSED (100%)
 - [✓] Check 5: Strict Role Isolation (Peer Judge Access Blocked)
     * Details: HTTP 403 Forbidden properly returned for peer scores
 - [✓] Check 6: Offline Reset Passkey Generation (15m TTL)
-    * Details: Generated Passkey: RST-6772-0749
+    * Details: Generated Passkey: RST-C0E7-F4F1
 - [✓] Check 7: Session Management & Authentication Integrity
     * Details: Session issued and validated
 

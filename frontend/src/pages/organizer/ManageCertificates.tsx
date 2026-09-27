@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
   Award, 
@@ -9,22 +9,58 @@ import {
   Download, 
   Eye, 
   Layers, 
-  ExternalLink
+  ExternalLink,
+  Sliders,
+  Upload,
+  Move,
+  Type,
+  Palette,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { UIModal } from '../../components/UIModal';
+
+interface CertificateTemplate {
+  id: string;
+  event_id: string;
+  type: string;
+  title: string;
+  template_image_url?: string;
+  config: {
+    name_x?: number;
+    name_y?: number;
+    name_font_size?: number;
+    name_color?: string;
+    font_family?: string;
+    text_align?: string;
+    primary_color?: string;
+    badge_title?: string;
+    subtitle?: string;
+    [key: string]: any;
+  };
+}
 
 export const ManageCertificates = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([]);
   const [certificates, setCertificates] = useState<any[]>([]);
   const [status, setStatus] = useState<any>({ has_generated: false, count: 0, show_certificates: false });
   const [loading, setLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
   const [previewCert, setPreviewCert] = useState<any>(null);
+
+  // Template Customizer State
+  const [editingTemplate, setEditingTemplate] = useState<CertificateTemplate | null>(null);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  // Add Template Modal State
   const [newTemplateModal, setNewTemplateModal] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ type: 'CUSTOM', title: 'Special Recognition Award', template_image_url: '' });
+
+  const canvasRef = useRef<SVGSVGElement | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
@@ -105,9 +141,93 @@ export const ManageCertificates = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setStatus((prev: any) => ({ ...prev, show_certificates: updatedVal }));
-      showToast(`Certificates are now ${updatedVal ? 'VISIBLE' : 'HIDDEN'} for participants.`, 'success');
+      showToast(`Certificates are now ${updatedVal ? 'VISIBLE' : 'HIDDEN'} on main page & participant portal.`, 'success');
     } catch (err: any) {
       showToast(err.response?.data?.error || 'Failed to update toggle', 'error');
+    }
+  };
+
+  const handleOpenCustomizer = (tmpl: CertificateTemplate) => {
+    // Clone template object and ensure config defaults exist
+    const cloned = JSON.parse(JSON.stringify(tmpl));
+    if (!cloned.config) cloned.config = {};
+    cloned.config.name_x = Number(cloned.config.name_x ?? 600);
+    cloned.config.name_y = Number(cloned.config.name_y ?? 325);
+    cloned.config.name_font_size = Number(cloned.config.name_font_size ?? 46);
+    cloned.config.name_color = cloned.config.name_color || '#dc2626';
+    cloned.config.font_family = cloned.config.font_family || 'Inter';
+    cloned.config.text_align = cloned.config.text_align || 'middle';
+    cloned.config.primary_color = cloned.config.primary_color || (
+      cloned.type === 'WINNER_1' ? '#eab308' : cloned.type === 'WINNER_2' ? '#94a3b8' : cloned.type === 'WINNER_3' ? '#d97706' : '#dc2626'
+    );
+    cloned.config.badge_title = cloned.config.badge_title || (
+      cloned.type === 'WINNER_1' ? '1ST PLACE WINNER' : cloned.type === 'WINNER_2' ? '2ND PLACE WINNER' : cloned.type === 'WINNER_3' ? '3RD PLACE WINNER' : 'OFFICIAL PARTICIPATION'
+    );
+    cloned.config.subtitle = cloned.config.subtitle || (
+      cloned.type.includes('WINNER') ? `For securing ${cloned.title.toUpperCase()} at` : 'For outstanding active participation and project development in'
+    );
+    setEditingTemplate(cloned);
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!editingTemplate || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = 1200 / rect.width;
+    const scaleY = 800 / rect.height;
+    const clickX = Math.round((e.clientX - rect.left) * scaleX);
+    const clickY = Math.round((e.clientY - rect.top) * scaleY);
+
+    setEditingTemplate({
+      ...editingTemplate,
+      config: {
+        ...editingTemplate.config,
+        name_x: Math.max(50, Math.min(1150, clickX)),
+        name_y: Math.max(50, Math.min(750, clickY))
+      }
+    });
+  };
+
+  const handleUploadBg = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingTemplate) return;
+
+    setIsUploadingBg(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await axios.post('/api/organizer/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setEditingTemplate({
+        ...editingTemplate,
+        template_image_url: res.data.url
+      });
+      showToast('Template background uploaded successfully!', 'success');
+    } catch (err) {
+      showToast('Failed to upload template image', 'error');
+    } finally {
+      setIsUploadingBg(false);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!editingTemplate || !selectedEventId) return;
+    setIsSavingTemplate(true);
+    try {
+      await axios.post(`/api/certificates/event/${selectedEventId}/templates`, editingTemplate, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      showToast('Template design & coordinates saved!', 'success');
+      setEditingTemplate(null);
+      loadEventCertificates(selectedEventId);
+    } catch (err) {
+      showToast('Failed to save template', 'error');
+    } finally {
+      setIsSavingTemplate(false);
     }
   };
 
@@ -137,6 +257,8 @@ export const ManageCertificates = () => {
     }
   };
 
+  const currentEvent = events.find(e => e.id === selectedEventId);
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-16">
       {/* Toast Notification */}
@@ -152,13 +274,13 @@ export const ManageCertificates = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border-2 border-amber-500 font-mono text-xs font-black uppercase tracking-wider">
               <Award className="w-3.5 h-3.5 text-amber-600" />
-              <span>Certificate Generation Engine</span>
+              <span>Certificate Studio &amp; Customizer</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">
               Certificate Studio
             </h1>
             <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-400 font-medium max-w-2xl leading-relaxed">
-              Generate, store, and manage tamper-proof certificates locally with automated winner ranking selection (1st, 2nd, 3rd, and participation) and cryptographic public verification.
+              Upload custom award templates, adjust recipient name coordinates (X, Y, font, color) on a live canvas, batch generate certificates locally, and safely toggle public participant visibility.
             </p>
           </div>
 
@@ -208,11 +330,11 @@ export const ManageCertificates = () => {
           <div className="flex items-center justify-between sm:justify-start gap-4 p-4 border-2 border-black dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
             <div>
               <span className="block text-xs font-black uppercase text-zinc-900 dark:text-white">
-                Show to Participants
+                Show to Participants &amp; Main Page
               </span>
               <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
                 {status.has_generated 
-                  ? (status.show_certificates ? 'Participants can download their certificates' : 'Certificates are hidden from participants')
+                  ? (status.show_certificates ? 'Certificates are VISIBLE on main page' : 'Certificates are HIDDEN until toggled ON')
                   : 'Requires generating certificates first'}
               </span>
             </div>
@@ -237,12 +359,12 @@ export const ManageCertificates = () => {
         </div>
       </div>
 
-      {/* Template Categories (Winner 1, Winner 2, Winner 3, Participant, Custom) */}
+      {/* Template Categories & Customizer Sets */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-red-600" />
-            <span>Award Categories &amp; Template Sets</span>
+            <span>Award Categories &amp; Template Studio</span>
           </h2>
           <button
             onClick={() => setNewTemplateModal(true)}
@@ -292,13 +414,23 @@ export const ManageCertificates = () => {
                     {isWinner2 && 'Automatically awarded to team securing Rank 2 on leaderboard.'}
                     {isWinner3 && 'Automatically awarded to team securing Rank 3 on leaderboard.'}
                     {isParticipant && 'Awarded to all registered and submitted team members.'}
-                    {!isWinner1 && !isWinner2 && !isWinner3 && !isParticipant && 'Custom category issued to selected teams.'}
+                    {!isWinner1 && !isWinner2 && !isWinner3 && !isParticipant && 'Custom award category issued to selected teams.'}
                   </p>
+
+                  <div className="pt-2 text-[11px] font-mono text-zinc-500 space-y-1">
+                    <div>Coord: X: {tmpl.config?.name_x ?? 600}, Y: {tmpl.config?.name_y ?? 325}</div>
+                    <div>Font: {tmpl.config?.name_font_size ?? 46}px ({tmpl.config?.font_family || 'Inter'})</div>
+                  </div>
                 </div>
 
-                <div className="pt-2 border-t-2 border-zinc-200 dark:border-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
-                  <span>Layout Engine</span>
-                  <span className="font-mono text-red-600 font-black">SVG Vector (1200x800)</span>
+                <div className="pt-3 border-t-2 border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                  <button
+                    onClick={() => handleOpenCustomizer(tmpl)}
+                    className="w-full py-2 bg-black dark:bg-white text-white dark:text-black font-black text-xs uppercase tracking-wider rounded flex items-center justify-center gap-1.5 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Customize Coordinates</span>
+                  </button>
                 </div>
               </div>
             );
@@ -306,7 +438,7 @@ export const ManageCertificates = () => {
         </div>
       </div>
 
-      {/* Generated Certificates Roster */}
+      {/* Generated Certificates Roster Table */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -355,7 +487,7 @@ export const ManageCertificates = () => {
                     <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                       <Award className="w-8 h-8 mx-auto mb-2 text-zinc-400" />
                       <p className="font-bold text-sm">No certificates generated yet for this event.</p>
-                      <p className="text-xs text-zinc-400 mt-1">Click "Generate All Certificates" to compute ranking and issue certificates.</p>
+                      <p className="text-xs text-zinc-400 mt-1">Click "Generate All Certificates" to compute ranking and issue certificates locally.</p>
                     </td>
                   </tr>
                 ) : (
@@ -418,7 +550,411 @@ export const ManageCertificates = () => {
         </div>
       </div>
 
-      {/* Preview Modal */}
+      {/* Interactive Certificate Customizer Modal (Old Project Certify Idea) */}
+      {editingTemplate && (
+        <UIModal
+          isOpen={!!editingTemplate}
+          onClose={() => setEditingTemplate(null)}
+          title={`Customize Template: ${editingTemplate.title} (${editingTemplate.type})`}
+          maxWidth="max-w-6xl"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left: Live Visual Preview Canvas */}
+            <div className="lg:col-span-7 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-zinc-600 dark:text-zinc-400">
+                <span className="flex items-center gap-1">
+                  <Move className="w-3.5 h-3.5 text-red-600" />
+                  <span>Click anywhere on canvas to set Name coordinates</span>
+                </span>
+                <span className="font-mono text-red-600 font-black">
+                  X: {editingTemplate.config?.name_x}, Y: {editingTemplate.config?.name_y}
+                </span>
+              </div>
+
+              <div className="relative border-4 border-black dark:border-white rounded-lg overflow-hidden bg-white shadow-md select-none cursor-crosshair">
+                <svg
+                  ref={canvasRef}
+                  onClick={handleCanvasClick}
+                  viewBox="0 0 1200 800"
+                  className="w-full h-auto block"
+                  style={{ fontFamily: editingTemplate.config?.font_family || 'Inter' }}
+                >
+                  {/* Template Background Image or Default Frame */}
+                  {editingTemplate.template_image_url && !editingTemplate.template_image_url.includes('certificate-default.png') ? (
+                    <image href={editingTemplate.template_image_url} x="0" y="0" width="1200" height="800" preserveAspectRatio="none" />
+                  ) : (
+                    <>
+                      <rect x="20" y="20" width="1160" height="760" fill="#ffffff" stroke="#18181b" strokeWidth="8"/>
+                      <rect x="35" y="35" width="1130" height="730" fill="#fafafa" stroke={editingTemplate.config?.primary_color || '#dc2626'} strokeWidth="4"/>
+                      <rect x="45" y="45" width="1110" height="710" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2"/>
+                      
+                      {/* Geometric Accents */}
+                      <polygon points="20,20 100,20 20,100" fill={editingTemplate.config?.primary_color || '#dc2626'} />
+                      <polygon points="1180,20 1100,20 1180,100" fill={editingTemplate.config?.primary_color || '#dc2626'} />
+                      <polygon points="20,780 100,780 20,700" fill="#18181b" />
+                      <polygon points="1180,780 1100,780 1180,700" fill="#18181b" />
+
+                      {/* Header Badge */}
+                      <g transform="translate(600, 110)">
+                        <rect x="-180" y="-20" width="360" height="40" fill={editingTemplate.config?.primary_color || '#dc2626'} stroke="#18181b" strokeWidth="3" rx="4"/>
+                        <text x="0" y="7" textAnchor="middle" fontSize="16" fontWeight="900" fill="#ffffff" letterSpacing="3">
+                          {editingTemplate.config?.badge_title || editingTemplate.title.toUpperCase()}
+                        </text>
+                      </g>
+
+                      <text x="600" y="190" textAnchor="middle" fontSize="40" fontWeight="900" fill="#18181b" letterSpacing="4">HACKNEXT CERTIFICATE</text>
+                      <text x="600" y="225" textAnchor="middle" fontSize="16" fontWeight="700" fill="#71717a" letterSpacing="2">THIS CERTIFICATE IS PROUDLY PRESENTED TO</text>
+                      <line x1="350" y1="245" x2="850" y2="245" stroke="#e4e4e7" strokeWidth="2"/>
+
+                      {/* Static Subtitle / Event info */}
+                      <text x="600" y="410" textAnchor="middle" fontSize="20" fontWeight="600" fill="#3f3f46">
+                        {editingTemplate.config?.subtitle || 'For outstanding active participation at'}
+                      </text>
+                      <text x="600" y="455" textAnchor="middle" fontSize="32" fontWeight="900" fill="#18181b">
+                        {currentEvent?.name || 'HackNext Hackathon 2026'}
+                      </text>
+
+                      {/* Footer signatures */}
+                      <g transform="translate(240, 640)">
+                        <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" strokeWidth="2"/>
+                        <text x="0" y="-15" textAnchor="middle" fontSize="16" fontWeight="900" fill="#18181b">DATE ISSUED</text>
+                      </g>
+                      <g transform="translate(600, 640)">
+                        <circle cx="0" cy="0" r="45" fill="#fafafa" stroke={editingTemplate.config?.primary_color || '#dc2626'} strokeWidth="4"/>
+                        <text x="0" y="6" textAnchor="middle" fontSize="13" fontWeight="900" fill={editingTemplate.config?.primary_color || '#dc2626'}>★ ★ ★</text>
+                      </g>
+                      <g transform="translate(960, 640)">
+                        <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" strokeWidth="2"/>
+                        <text x="0" y="-15" textAnchor="middle" fontSize="16" fontWeight="900" fill="#18181b">ORGANIZER</text>
+                      </g>
+                    </>
+                  )}
+
+                  {/* Recipient Name Preview Overlay */}
+                  <text
+                    x={editingTemplate.config?.name_x ?? 600}
+                    y={editingTemplate.config?.name_y ?? 325}
+                    textAnchor={editingTemplate.config?.text_align || 'middle'}
+                    fontSize={editingTemplate.config?.name_font_size ?? 46}
+                    fontWeight="900"
+                    fill={editingTemplate.config?.name_color || '#dc2626'}
+                    letterSpacing="1"
+                  >
+                    Alex Mercer (Sample Recipient)
+                  </text>
+                </svg>
+              </div>
+            </div>
+
+            {/* Right: Controls & Adjustments */}
+            <div className="lg:col-span-5 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              
+              {/* Template Background Image Upload */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/80 rounded-lg border-2 border-black dark:border-zinc-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5" /> Background Template
+                  </span>
+                  {editingTemplate.template_image_url && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingTemplate({ ...editingTemplate, template_image_url: '' })}
+                      className="text-[10px] text-red-600 font-bold hover:underline"
+                    >
+                      Reset to Default
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  onChange={handleUploadBg}
+                  className="w-full text-xs font-bold file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-2 file:border-black file:text-xs file:font-black file:uppercase file:bg-zinc-200 dark:file:bg-zinc-700 file:text-zinc-900 dark:file:text-white hover:file:bg-zinc-300"
+                />
+                {isUploadingBg && <div className="text-xs font-bold text-zinc-500 animate-pulse">Uploading template background...</div>}
+              </div>
+
+              {/* Coordinates Sliders */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/80 rounded-lg border-2 border-black dark:border-zinc-700 space-y-4">
+                <div className="flex items-center justify-between border-b pb-2 border-zinc-200 dark:border-zinc-700">
+                  <span className="text-xs font-black uppercase text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <Move className="w-3.5 h-3.5 text-red-600" /> Name Position (X, Y)
+                  </span>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, name_x: 600 }
+                      })}
+                      className="px-2 py-0.5 text-[10px] font-black uppercase bg-zinc-200 dark:bg-zinc-700 rounded border border-zinc-400"
+                    >
+                      Center X
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, name_y: 350 }
+                      })}
+                      className="px-2 py-0.5 text-[10px] font-black uppercase bg-zinc-200 dark:bg-zinc-700 rounded border border-zinc-400"
+                    >
+                      Center Y
+                    </button>
+                  </div>
+                </div>
+
+                {/* X Coordinate */}
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span>X Coordinate (Horizontal)</span>
+                    <input
+                      type="number"
+                      value={editingTemplate.config?.name_x ?? 600}
+                      onChange={(e) => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, name_x: parseInt(e.target.value) || 0 }
+                      })}
+                      className="w-16 px-1 py-0.5 text-right font-mono border rounded bg-white dark:bg-zinc-900 text-xs font-bold"
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="1150"
+                    value={editingTemplate.config?.name_x ?? 600}
+                    onChange={(e) => setEditingTemplate({
+                      ...editingTemplate,
+                      config: { ...editingTemplate.config, name_x: parseInt(e.target.value) }
+                    })}
+                    className="w-full accent-red-600"
+                  />
+                </div>
+
+                {/* Y Coordinate */}
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span>Y Coordinate (Vertical)</span>
+                    <input
+                      type="number"
+                      value={editingTemplate.config?.name_y ?? 325}
+                      onChange={(e) => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, name_y: parseInt(e.target.value) || 0 }
+                      })}
+                      className="w-16 px-1 py-0.5 text-right font-mono border rounded bg-white dark:bg-zinc-900 text-xs font-bold"
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="750"
+                    value={editingTemplate.config?.name_y ?? 325}
+                    onChange={(e) => setEditingTemplate({
+                      ...editingTemplate,
+                      config: { ...editingTemplate.config, name_y: parseInt(e.target.value) }
+                    })}
+                    className="w-full accent-red-600"
+                  />
+                </div>
+              </div>
+
+              {/* Typography & Color */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/80 rounded-lg border-2 border-black dark:border-zinc-700 space-y-4">
+                <span className="block text-xs font-black uppercase text-zinc-900 dark:text-white border-b pb-2 border-zinc-200 dark:border-zinc-700 flex items-center gap-1.5">
+                  <Type className="w-3.5 h-3.5 text-red-600" /> Typography &amp; Color
+                </span>
+
+                {/* Font Size */}
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span>Font Size ({editingTemplate.config?.name_font_size ?? 46}px)</span>
+                    <input
+                      type="number"
+                      value={editingTemplate.config?.name_font_size ?? 46}
+                      onChange={(e) => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, name_font_size: parseInt(e.target.value) || 20 }
+                      })}
+                      className="w-16 px-1 py-0.5 text-right font-mono border rounded bg-white dark:bg-zinc-900 text-xs font-bold"
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    min="18"
+                    max="96"
+                    value={editingTemplate.config?.name_font_size ?? 46}
+                    onChange={(e) => setEditingTemplate({
+                      ...editingTemplate,
+                      config: { ...editingTemplate.config, name_font_size: parseInt(e.target.value) }
+                    })}
+                    className="w-full accent-red-600"
+                  />
+                </div>
+
+                {/* Font Family & Alignment */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Font Family</label>
+                    <select
+                      value={editingTemplate.config?.font_family || 'Inter'}
+                      onChange={(e) => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, font_family: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded bg-white dark:bg-zinc-900 font-bold text-xs"
+                    >
+                      <option value="Inter">Inter (Sans)</option>
+                      <option value="Montserrat">Montserrat</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Georgia">Georgia (Serif)</option>
+                      <option value="Playfair Display">Playfair Display</option>
+                      <option value="Courier New">Courier New (Mono)</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Text Alignment</label>
+                    <select
+                      value={editingTemplate.config?.text_align || 'middle'}
+                      onChange={(e) => setEditingTemplate({
+                        ...editingTemplate,
+                        config: { ...editingTemplate.config, text_align: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded bg-white dark:bg-zinc-900 font-bold text-xs"
+                    >
+                      <option value="middle">Center Align</option>
+                      <option value="start">Left Align</option>
+                      <option value="end">Right Align</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Name Color & Primary Accent */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Name Text Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={editingTemplate.config?.name_color || '#dc2626'}
+                        onChange={(e) => setEditingTemplate({
+                          ...editingTemplate,
+                          config: { ...editingTemplate.config, name_color: e.target.value }
+                        })}
+                        className="w-8 h-8 rounded border cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={editingTemplate.config?.name_color || '#dc2626'}
+                        onChange={(e) => setEditingTemplate({
+                          ...editingTemplate,
+                          config: { ...editingTemplate.config, name_color: e.target.value }
+                        })}
+                        className="w-full p-1.5 text-xs font-mono font-bold border rounded bg-white dark:bg-zinc-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Accent Theme Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={editingTemplate.config?.primary_color || '#dc2626'}
+                        onChange={(e) => setEditingTemplate({
+                          ...editingTemplate,
+                          config: { ...editingTemplate.config, primary_color: e.target.value }
+                        })}
+                        className="w-8 h-8 rounded border cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={editingTemplate.config?.primary_color || '#dc2626'}
+                        onChange={(e) => setEditingTemplate({
+                          ...editingTemplate,
+                          config: { ...editingTemplate.config, primary_color: e.target.value }
+                        })}
+                        className="w-full p-1.5 text-xs font-mono font-bold border rounded bg-white dark:bg-zinc-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Award Content Text */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/80 rounded-lg border-2 border-black dark:border-zinc-700 space-y-3">
+                <span className="block text-xs font-black uppercase text-zinc-900 dark:text-white border-b pb-2 border-zinc-200 dark:border-zinc-700 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-red-600" /> Badge &amp; Subtitle Content
+                </span>
+
+                <div>
+                  <label className="block text-xs font-bold mb-1">Award Title</label>
+                  <input
+                    type="text"
+                    value={editingTemplate.title}
+                    onChange={(e) => setEditingTemplate({ ...editingTemplate, title: e.target.value })}
+                    className="w-full p-2 border rounded bg-white dark:bg-zinc-900 font-bold text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold mb-1">Top Badge Text</label>
+                  <input
+                    type="text"
+                    value={editingTemplate.config?.badge_title || ''}
+                    onChange={(e) => setEditingTemplate({
+                      ...editingTemplate,
+                      config: { ...editingTemplate.config, badge_title: e.target.value }
+                    })}
+                    placeholder="e.g. 1ST PLACE WINNER"
+                    className="w-full p-2 border rounded bg-white dark:bg-zinc-900 font-bold text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold mb-1">Subtitle Paragraph</label>
+                  <input
+                    type="text"
+                    value={editingTemplate.config?.subtitle || ''}
+                    onChange={(e) => setEditingTemplate({
+                      ...editingTemplate,
+                      config: { ...editingTemplate.config, subtitle: e.target.value }
+                    })}
+                    placeholder="e.g. For securing 1st place at"
+                    className="w-full p-2 border rounded bg-white dark:bg-zinc-900 font-bold text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Save / Cancel Footer */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingTemplate(null)}
+                  className="flex-1 py-2.5 bg-zinc-200 dark:bg-zinc-700 font-black text-xs uppercase tracking-wider rounded border border-black dark:border-zinc-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingTemplate}
+                  onClick={handleSaveTemplate}
+                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider rounded border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5"
+                >
+                  {isSavingTemplate ? 'Saving...' : 'Save Template'}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </UIModal>
+      )}
+
+      {/* Preview Single Certificate Modal */}
       {previewCert && (
         <UIModal
           isOpen={!!previewCert}

@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireRole } from '../middleware/auth';
 import { checkRegistrationStatus } from '../utils/timeline';
 
 const router = express.Router();
@@ -23,7 +23,7 @@ const isProfileComplete = (user: any) => {
 };
 
 // Create a team
-router.post('/create', requireAuth, async (req, res) => {
+router.post('/create', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     let { name, event_id } = req.body;
     const userId = (req as any).user.id;
@@ -119,7 +119,7 @@ router.post('/create', requireAuth, async (req, res) => {
 });
 
 // Join a team
-router.post('/join', requireAuth, async (req, res) => {
+router.post('/join', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const { invite_code } = req.body;
     const userId = (req as any).user.id;
@@ -273,7 +273,7 @@ router.get('/all', requireAuth, async (req, res) => {
 });
 
 // Request to join a team
-router.post('/request-join', requireAuth, async (req, res) => {
+router.post('/request-join', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const { team_id } = req.body;
     const userId = (req as any).user.id;
@@ -328,7 +328,7 @@ router.post('/request-join', requireAuth, async (req, res) => {
 });
 
 // Get team's join requests
-router.get('/join-requests', requireAuth, async (req, res) => {
+router.get('/join-requests', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const userId = (req as any).user.id;
     // Find team where user is leader
@@ -351,7 +351,7 @@ router.get('/join-requests', requireAuth, async (req, res) => {
 });
 
 // Accept join request
-router.post('/join-requests/:id/accept', requireAuth, async (req, res) => {
+router.post('/join-requests/:id/accept', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const reqId = req.params.id;
     const userId = (req as any).user.id;
@@ -394,7 +394,7 @@ router.post('/join-requests/:id/accept', requireAuth, async (req, res) => {
 });
 
 // Reject join request
-router.post('/join-requests/:id/reject', requireAuth, async (req, res) => {
+router.post('/join-requests/:id/reject', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const reqId = req.params.id;
     const userId = (req as any).user.id;

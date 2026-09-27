@@ -113,7 +113,7 @@ router.get('/events/:eventId/my-vote', requireAuth, async (req, res) => {
 });
 
 // 3. Cast a vote for a project (Strictly 1 vote per user per event)
-router.post('/events/:eventId/vote', requireAuth, async (req, res) => {
+router.post('/events/:eventId/vote', requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const { eventId } = req.params;
     const { projectId } = req.body;

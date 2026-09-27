@@ -147,6 +147,11 @@ export const HackathonDetails = () => {
       return;
     }
 
+    if (user.role !== 'participant') {
+      showToast('Only registered participants can cast community votes.', 'error');
+      return;
+    }
+
     setIsVoting(true);
     try {
       const res = await api.post(`/voting/events/${event.id}/vote`, { projectId });
@@ -272,31 +277,94 @@ export const HackathonDetails = () => {
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">
-              {user?.role === 'participant' ? (
-                <>
-                  <Link to="/participant/team" className="bauhaus-button inline-block text-center">
-                    My Team &amp; Workspace →
-                  </Link>
-                  <Link to="/participant/submission" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
-                    Submit Project
-                  </Link>
-                  <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
-                    Community Projects &amp; Vote
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link to="/signup" className="bauhaus-button inline-block text-center">
-                    Register &amp; Participate →
-                  </Link>
-                  <Link to="/login" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
-                    Sign In
-                  </Link>
-                  <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
-                    Browse Projects
-                  </button>
-                </>
-              )}
+              {(() => {
+                const showProjectsBtn = Boolean(event.show_public_projects || event.community_voting_open || event.show_public_voting);
+                
+                if (user?.role === 'organizer') {
+                  return (
+                    <>
+                      <Link to="/organizer" className="bauhaus-button inline-block text-center">
+                        Organizer Dashboard →
+                      </Link>
+                      <Link to="/organizer/events" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                        Manage Events
+                      </Link>
+                      {showProjectsBtn && (
+                        <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                          Browse Projects
+                        </button>
+                      )}
+                    </>
+                  );
+                }
+
+                if (user?.role === 'admin') {
+                  return (
+                    <>
+                      <Link to="/admin/judges" className="bauhaus-button inline-block text-center">
+                        Admin Console →
+                      </Link>
+                      <Link to="/admin/submissions" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                        Submissions
+                      </Link>
+                      {showProjectsBtn && (
+                        <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                          Browse Projects
+                        </button>
+                      )}
+                    </>
+                  );
+                }
+
+                if (user?.role === 'judge') {
+                  return (
+                    <>
+                      <Link to="/judge" className="bauhaus-button inline-block text-center">
+                        Judge Dashboard →
+                      </Link>
+                      {showProjectsBtn && (
+                        <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                          Browse Projects
+                        </button>
+                      )}
+                    </>
+                  );
+                }
+
+                if (user?.role === 'participant') {
+                  return (
+                    <>
+                      <Link to="/participant/team" className="bauhaus-button inline-block text-center">
+                        My Team &amp; Workspace →
+                      </Link>
+                      <Link to="/participant/submission" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                        Submit Project
+                      </Link>
+                      {showProjectsBtn && (
+                        <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                          Community Projects &amp; Vote
+                        </button>
+                      )}
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <Link to="/signup" className="bauhaus-button inline-block text-center">
+                      Register &amp; Participate →
+                    </Link>
+                    <Link to="/login" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                      Sign In
+                    </Link>
+                    {showProjectsBtn && (
+                      <button onClick={openProjectsVoting} className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block text-center">
+                        Browse Projects
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
           
@@ -317,11 +385,22 @@ export const HackathonDetails = () => {
         {/* Navigation Cards Strip (Teams / Projects / Results / Certificates) */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-20">
           {event.show_public_teams && (
-            <div onClick={() => navigate('/participant/team/join')} className="bauhaus-card p-8 text-center flex flex-col items-center justify-center hover:bg-red-600 hover:text-white transition-colors group cursor-pointer border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+            <div 
+              onClick={() => {
+                if (user?.role === 'organizer') navigate('/organizer/participants');
+                else if (user?.role === 'admin') navigate('/admin/submissions');
+                else if (user?.role === 'judge') openProjectsVoting();
+                else if (user?.role === 'participant') navigate('/participant/team/join');
+                else navigate('/signup');
+              }} 
+              className="bauhaus-card p-8 text-center flex flex-col items-center justify-center hover:bg-red-600 hover:text-white transition-colors group cursor-pointer border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)]"
+            >
               <Users className="w-8 h-8 mb-2" />
               <h3 className="text-xl font-black uppercase mb-1">Teams Roster</h3>
               <div className="text-5xl font-black font-mono mb-4 group-hover:scale-110 transition-transform">{event.team_count || 0}</div>
-              <span className="font-black uppercase tracking-widest text-xs border-b-2 border-transparent group-hover:border-white pb-0.5">Explore Teams →</span>
+              <span className="font-black uppercase tracking-widest text-xs border-b-2 border-transparent group-hover:border-white pb-0.5">
+                {user?.role === 'organizer' ? 'Manage Participants →' : user?.role === 'admin' ? 'View Submissions →' : user?.role === 'participant' ? 'Explore Teams →' : 'Join / Register →'}
+              </span>
             </div>
           )}
 
@@ -580,7 +659,9 @@ export const HackathonDetails = () => {
               <div>
                 <span className="text-xs font-black uppercase text-zinc-700 dark:text-zinc-300">Community Voting Rules</span>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                  Every participant can cast <strong>strictly 1 vote</strong> for their favorite project.
+                  {user && user.role !== 'participant' 
+                    ? `Logged in as ${user.role.toUpperCase()} (View Only - voting is exclusive to registered participants).`
+                    : 'Every participant can cast strictly 1 vote for their favorite project.'}
                 </p>
               </div>
               {userVote?.hasVoted && (
@@ -604,6 +685,7 @@ export const HackathonDetails = () => {
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                 {projectsData.map((proj) => {
                   const isVotedForThis = userVote?.hasVoted && userVote.projectId === proj.id;
+                  const isStaff = user && user.role !== 'participant';
 
                   return (
                     <div
@@ -634,28 +716,34 @@ export const HackathonDetails = () => {
                       </div>
 
                       <div className="shrink-0 flex items-center">
-                        <button
-                          type="button"
-                          disabled={isVoting || isVotedForThis}
-                          onClick={() => handleCastVote(proj.id)}
-                          className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded border-2 transition flex items-center gap-1.5 ${
-                            isVotedForThis
-                              ? 'bg-emerald-600 text-white border-emerald-700 cursor-default'
-                              : 'bg-black text-white hover:bg-red-600 border-black shadow'
-                          }`}
-                        >
-                          {isVotedForThis ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4" />
-                              <span>Voted</span>
-                            </>
-                          ) : (
-                            <>
-                              <Vote className="w-4 h-4" />
-                              <span>Vote</span>
-                            </>
-                          )}
-                        </button>
+                        {isStaff ? (
+                          <span className="px-3 py-1.5 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-black uppercase tracking-wider rounded border border-zinc-400 dark:border-zinc-600">
+                            Staff View
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isVoting || isVotedForThis}
+                            onClick={() => handleCastVote(proj.id)}
+                            className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded border-2 transition flex items-center gap-1.5 ${
+                              isVotedForThis
+                                ? 'bg-emerald-600 text-white border-emerald-700 cursor-default'
+                                : 'bg-black text-white hover:bg-red-600 border-black shadow'
+                            }`}
+                          >
+                            {isVotedForThis ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>Voted</span>
+                              </>
+                            ) : (
+                              <>
+                                <Vote className="w-4 h-4" />
+                                <span>Vote</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
