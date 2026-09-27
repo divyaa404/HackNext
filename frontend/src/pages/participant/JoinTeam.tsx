@@ -120,7 +120,7 @@ export const JoinTeam = () => {
               </div>
             </div>
             
-            <h2 className="text-2xl font-black text-center uppercase tracking-widest mb-6 text-bauhaus-text shadow-white drop-shadow-[2px_2px_0px_rgba(255,255,255,1)]">Have a Code?</h2>
+            <h2 className="text-2xl font-black text-center uppercase tracking-widest mb-6 text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,0.6)]">Have a Code?</h2>
             
             <form onSubmit={handleJoinByCode} className="space-y-6">
               <div>
@@ -132,7 +132,7 @@ export const JoinTeam = () => {
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   placeholder="6-DIGIT CODE"
-                  className="w-full px-4 py-3 md:py-4 border-4 border-bauhaus-border bg-bauhaus-card text-bauhaus-text focus:outline-none focus:ring-0 focus:border-bauhaus-accent transition-colors font-black text-2xl text-center uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 md:py-4 border-4 border-bauhaus-border bg-white dark:bg-zinc-900 text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-0 focus:border-bauhaus-accent transition-colors font-black text-2xl text-center uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 

@@ -79,7 +79,7 @@ export const Profile = () => {
         year: data.year || '',
         branch: data.branch || '',
         gender: data.gender || '',
-        dob: data.dob || '',
+        dob: data.dob ? (data.dob.includes('T') ? data.dob.split('T')[0] : data.dob) : '',
         phone: data.phone || '',
         city: data.city || '',
         bio: data.bio || '',
@@ -97,9 +97,22 @@ export const Profile = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name === 'dob' && value) {
+      const parts = value.split('-');
+      // Prevent year from extending beyond 4 digits when typed in Chrome/Edge
+      if (parts[0] && parts[0].length > 4) {
+        parts[0] = parts[0].slice(0, 4);
+        setFormData({
+          ...formData,
+          dob: parts.join('-')
+        });
+        return;
+      }
+    }
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -114,6 +127,15 @@ export const Profile = () => {
       setError('Full Name is required.');
       setSaving(false);
       return;
+    }
+
+    if (formData.dob) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (formData.dob > todayStr) {
+        setError('Date of Birth cannot be in the future.');
+        setSaving(false);
+        return;
+      }
     }
 
     try {
@@ -460,6 +482,8 @@ export const Profile = () => {
                       <input 
                         type="date" 
                         name="dob" 
+                        max={new Date().toISOString().split('T')[0]}
+                        min="1920-01-01"
                         value={formData.dob} 
                         onChange={handleChange} 
                         className="w-full px-4 py-3 border-4 border-bauhaus-border bg-bauhaus-bg text-bauhaus-text focus:outline-none focus:border-bauhaus-primary font-bold text-sm" 
@@ -541,8 +565,6 @@ export const Profile = () => {
                         <option value="2nd Year">2nd Year</option>
                         <option value="3rd Year">3rd Year</option>
                         <option value="4th Year">4th Year</option>
-                        <option value="5th Year+">5th Year+</option>
-                        <option value="Graduated">Graduated / Working Professional</option>
                       </select>
                     </div>
                   </div>
