@@ -63,7 +63,7 @@ function App() {
           {/* Public and Participant Routes */}
           <Route element={<ParticipantLayout />}>
             <Route path="/" element={<HackathonDetails />} />
-            <Route path="/participant" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/participant" element={<Navigate to="/participant/team" replace />} />
 
             <Route element={<ProtectedRoute allowedRoles={['participant']} />}>
               <Route path="/participant/profile" element={<Profile />} />
