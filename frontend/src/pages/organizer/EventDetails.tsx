@@ -222,16 +222,16 @@ export const EventDetails = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8 sticky top-0 bg-gray-50 p-4 z-40 border-b shadow-sm rounded-b-lg">
+      <div className="flex items-center justify-between mb-8 sticky top-0 bg-white dark:bg-zinc-900 p-4 z-40 border-b-4 border-black dark:border-zinc-700 shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Event</h1>
-          <p className="text-gray-500 mt-1">Manage everything on a single page.</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Edit Event</h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Manage all event details in one place.</p>
         </div>
-        <div className="flex gap-4">
-          <button onClick={handleSaveAll} disabled={isSaving} className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 font-bold flex items-center justify-center min-w-[160px] disabled:opacity-75 disabled:cursor-not-allowed transition-all">
+        <div className="flex gap-3">
+          <button onClick={handleSaveAll} disabled={isSaving} className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] flex items-center justify-center min-w-[140px] disabled:opacity-75 disabled:cursor-not-allowed transition">
             {isSaving ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -239,8 +239,8 @@ export const EventDetails = () => {
               </span>
             ) : 'Save All Changes'}
           </button>
-          <Link to="/" target="_blank" className="px-4 py-2 bg-black hover:bg-zinc-800 text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 font-black text-xs uppercase tracking-wider border-2 border-black dark:border-zinc-600 rounded-none transition">
-            View Public Page &rarr;
+          <Link to="/" target="_blank" className="px-4 py-2.5 bg-black hover:bg-zinc-800 text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 font-black text-xs uppercase tracking-wider border-2 border-black dark:border-zinc-600 transition">
+            View Public &rarr;
           </Link>
         </div>
       </div>
@@ -248,19 +248,19 @@ export const EventDetails = () => {
       <div className="space-y-12">
         {/* Basic Information Section */}
         <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)]">
-          <h2 className="text-2xl font-bold mb-6">Event Details</h2>
+          <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white mb-6">Event Details</h2>
           <form id="basic-info-form" className="space-y-6" onSubmit={handleUpdateEvent}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Event Name</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Event Name</label>
                 <input name="name" defaultValue={event.name} className="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 sm:text-sm p-3 border" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Organizer Name</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Organizer Name</label>
                 <input name="organizer_name" defaultValue={event.organizer_name} className="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 sm:text-sm p-3 border" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Event Start Date & Time</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Event Start Date & Time</label>
                 <input 
                   type="datetime-local" 
                   name="start_date" 
@@ -269,7 +269,7 @@ export const EventDetails = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Event End Date & Time</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Event End Date & Time</label>
                 <input 
                   type="datetime-local" 
                   name="end_date" 
@@ -278,8 +278,8 @@ export const EventDetails = () => {
                 />
               </div>
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Banner Image Upload <span className="text-gray-400 font-normal">(Recommended size: 1920x1080px, 16:9 ratio. Upload multiple times to add sliding banners)</span>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                  Banner Image Upload <span className="text-zinc-400 dark:text-zinc-500 font-normal normal-case">(1920x1080px, 16:9 ratio. Upload multiple times to add sliding banners)</span>
                 </label>
                 <div className="flex flex-col gap-4 mt-1">
                   <div className="flex gap-4 overflow-x-auto py-2">
@@ -356,19 +356,19 @@ export const EventDetails = () => {
                 </div>
               </div>
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">About Details (Full Description, supports HTML)</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">About Details (Full Description, supports HTML)</label>
                 <textarea name="full_description" defaultValue={event.full_description} rows={6} className="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 sm:text-sm p-3 border" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Category</label>
                 <input name="category" defaultValue={event.category} className="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 sm:text-sm p-3 border" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Prize Pool / Sponsor Details</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Prize Pool / Sponsor Details</label>
                 <input name="prize_pool" defaultValue={event.prize_pool} className="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 sm:text-sm p-3 border" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Minimum Team Size</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Minimum Team Size</label>
                 <input 
                   type="number" 
                   min="1" 
@@ -379,7 +379,7 @@ export const EventDetails = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Maximum Team Size</label>
+                <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Maximum Team Size</label>
                 <input 
                   type="number" 
                   min="1" 
@@ -437,12 +437,12 @@ export const EventDetails = () => {
         </div>
 
         {/* Prizing & Winners Section */}
-        <div className="bg-white shadow rounded-lg p-6 border-t-4 border-yellow-500">
+        <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] border-t-4 border-t-yellow-500">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Prizing & Winner Categories</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Prizing & Winner Categories</h2>
             <button 
               onClick={() => setPrizes([...prizes, { title: 'New Prize', amount: '₹0', description: '', sort_order: prizes.length + 1 }])}
-              className="bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200 border text-sm font-bold"
+              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300 border-2 border-black dark:border-zinc-600 text-xs font-black uppercase tracking-wider hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
             >
               + Add Prize
             </button>
@@ -456,7 +456,7 @@ export const EventDetails = () => {
                 onDragStart={() => onDragStart(idx, 'prizes')}
                 onDragOver={onDragOver}
                 onDrop={() => onDrop(idx, 'prizes', prizes, setPrizes)}
-                className="flex gap-4 items-start p-4 border rounded-md bg-gray-50 cursor-move hover:border-indigo-400 transition-colors"
+                className="flex gap-4 items-start p-4 border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 cursor-move hover:border-yellow-400 dark:hover:border-yellow-500 transition-colors"
               >
                 <div className="flex flex-col justify-center text-gray-400 py-2">
                   <span className="text-xl">≡</span>
@@ -464,7 +464,7 @@ export const EventDetails = () => {
                 <div className="flex-1 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase">Category Title</label>
+                      <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Category Title</label>
                       <input 
                         value={prize.title}
                         onChange={(e) => {
@@ -472,12 +472,12 @@ export const EventDetails = () => {
                           newPrizes[idx].title = e.target.value;
                           setPrizes(newPrizes);
                         }}
-                        className="mt-1 w-full p-2 border rounded text-sm" 
+                        className="mt-1 w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase">Prize Amount</label>
+                      <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Prize Amount</label>
                       <input 
                         value={prize.amount}
                         onChange={(e) => {
@@ -485,7 +485,7 @@ export const EventDetails = () => {
                           newPrizes[idx].amount = e.target.value;
                           setPrizes(newPrizes);
                         }}
-                        className="mt-1 w-full p-2 border rounded text-sm" 
+                        className="mt-1 w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 
                       />
                     </div>
                   </div>
@@ -499,18 +499,18 @@ export const EventDetails = () => {
                 </button>
               </div>
             ))}
-            {prizes.length === 0 && <p className="text-gray-500 italic">No prizes configured.</p>}
+            {prizes.length === 0 && <p className="text-zinc-500 dark:text-zinc-400 italic text-sm">No prizes configured.</p>}
             <div className="pt-4 flex justify-end">
-              <button type="submit" className="bg-yellow-500 text-white px-6 py-2 rounded shadow hover:bg-yellow-600 font-bold">Save Prizes</button>
+              <button type="submit" className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] transition">Save Prizes</button>
             </div>
           </form>
         </div>
 
         {/* Rules Section */}
-        <div className="bg-white shadow rounded-lg p-6 border-t-4 border-blue-500">
+        <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] border-t-4 border-t-blue-500">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Rules</h2>
-            <button onClick={() => setRules([...rules, { title: 'New Rule', description: '', sort_order: rules.length + 1 }])} className="bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200 border text-sm font-bold">+ Add Rule</button>
+            <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Rules</h2>
+            <button onClick={() => setRules([...rules, { title: 'New Rule', description: '', sort_order: rules.length + 1 }])} className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300 border-2 border-black dark:border-zinc-600 text-xs font-black uppercase tracking-wider hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">+ Add Rule</button>
           </div>
           <form onSubmit={(e) => handleUpdateContent('rules', rules, e)} className="space-y-4">
             {rules.map((item, idx) => (
@@ -520,28 +520,28 @@ export const EventDetails = () => {
                 onDragStart={() => onDragStart(idx, 'rules')}
                 onDragOver={onDragOver}
                 onDrop={() => onDrop(idx, 'rules', rules, setRules)}
-                className="flex gap-4 p-4 border rounded-md bg-gray-50 cursor-move hover:border-blue-400 transition-colors"
+                className="flex gap-4 p-4 border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 cursor-move hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
               >
-                <div className="flex flex-col justify-center text-gray-400">
+                <div className="flex flex-col justify-center text-zinc-400 dark:text-zinc-500">
                   <span className="text-xl">≡</span>
                 </div>
                 <div className="flex-1 space-y-2">
-                  <input value={item.title} onChange={(e) => { const n = [...rules]; n[idx].title = e.target.value; setRules(n); }} placeholder="Rule Title" className="w-full p-2 border rounded text-sm font-bold" required />
-                  <textarea value={item.description || ''} onChange={(e) => { const n = [...rules]; n[idx].description = e.target.value; setRules(n); }} placeholder="Description" className="w-full p-2 border rounded text-sm" />
+                  <input value={item.title} onChange={(e) => { const n = [...rules]; n[idx].title = e.target.value; setRules(n); }} placeholder="Rule Title" className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm font-bold focus:border-red-500 focus:outline-none" required />
+                  <textarea value={item.description || ''} onChange={(e) => { const n = [...rules]; n[idx].description = e.target.value; setRules(n); }} placeholder="Description" className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" />
                 </div>
                 <button type="button" onClick={() => setRules(rules.filter((_, i) => i !== idx))} className="text-red-500 font-bold">X</button>
               </div>
             ))}
-            {rules.length === 0 && <p className="text-gray-500 italic">No rules configured.</p>}
-            <div className="flex justify-end"><button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded font-bold">Save Rules</button></div>
+            {rules.length === 0 && <p className="text-zinc-500 dark:text-zinc-400 italic text-sm">No rules configured.</p>}
+            <div className="flex justify-end"><button type="submit" className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] transition">Save Rules</button></div>
           </form>
         </div>
 
         {/* Eligibility Section */}
-        <div className="bg-white shadow rounded-lg p-6 border-t-4 border-green-500">
+        <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] border-t-4 border-t-green-500">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Eligibility</h2>
-            <button onClick={() => setEligibility([...eligibility, { title: 'New Requirement', description: '', sort_order: eligibility.length + 1 }])} className="bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200 border text-sm font-bold">+ Add Requirement</button>
+            <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Eligibility</h2>
+            <button onClick={() => setEligibility([...eligibility, { title: 'New Requirement', description: '', sort_order: eligibility.length + 1 }])} className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300 border-2 border-black dark:border-zinc-600 text-xs font-black uppercase tracking-wider hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">+ Add Requirement</button>
           </div>
           <form onSubmit={(e) => handleUpdateContent('eligibility', eligibility, e)} className="space-y-4">
             {eligibility.map((item, idx) => (
@@ -551,29 +551,29 @@ export const EventDetails = () => {
                 onDragStart={() => onDragStart(idx, 'eligibility')}
                 onDragOver={onDragOver}
                 onDrop={() => onDrop(idx, 'eligibility', eligibility, setEligibility)}
-                className="flex gap-4 p-4 border rounded-md bg-gray-50 cursor-move hover:border-green-400 transition-colors"
+                className="flex gap-4 p-4 border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 cursor-move hover:border-green-400 dark:hover:border-green-500 transition-colors"
               >
-                <div className="flex flex-col justify-center text-gray-400">
+                <div className="flex flex-col justify-center text-zinc-400 dark:text-zinc-500">
                   <span className="text-xl">≡</span>
                 </div>
                 <div className="flex-1 space-y-2">
-                  <input value={item.title} onChange={(e) => { const n = [...eligibility]; n[idx].title = e.target.value; setEligibility(n); }} placeholder="Requirement" className="w-full p-2 border rounded text-sm font-bold" required />
-                  <textarea value={item.description || ''} onChange={(e) => { const n = [...eligibility]; n[idx].description = e.target.value; setEligibility(n); }} placeholder="Details" className="w-full p-2 border rounded text-sm" />
+                  <input value={item.title} onChange={(e) => { const n = [...eligibility]; n[idx].title = e.target.value; setEligibility(n); }} placeholder="Requirement" className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm font-bold focus:border-red-500 focus:outline-none" required />
+                  <textarea value={item.description || ''} onChange={(e) => { const n = [...eligibility]; n[idx].description = e.target.value; setEligibility(n); }} placeholder="Details" className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" />
                 </div>
                 <button type="button" onClick={() => setEligibility(eligibility.filter((_, i) => i !== idx))} className="text-red-500 font-bold">X</button>
               </div>
             ))}
-            {eligibility.length === 0 && <p className="text-gray-500 italic">No requirements configured.</p>}
-            <div className="flex justify-end"><button type="submit" className="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Eligibility</button></div>
+            {eligibility.length === 0 && <p className="text-zinc-500 dark:text-zinc-400 italic text-sm">No requirements configured.</p>}
+            <div className="flex justify-end"><button type="submit" className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] transition">Save Eligibility</button></div>
           </form>
         </div>
 
         {/* Timeline & Rounds Section */}
-        <div className="bg-white shadow rounded-lg p-6 border-t-4 border-purple-500">
+        <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] border-t-4 border-t-purple-500">
           <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
             <div>
-              <h2 className="text-2xl font-bold">Dates, Rounds & Deadlines</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Manage predefined Registration & Submission windows and create custom hackathon rounds.</p>
+              <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Dates, Rounds & Deadlines</h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Manage predefined Registration & Submission windows and create custom hackathon rounds.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button 
@@ -583,7 +583,7 @@ export const EventDetails = () => {
                   sorted.forEach((item, i) => item.sort_order = i + 1);
                   setTimeline(sorted);
                 }}
-                className="bg-purple-100 text-purple-800 px-3 py-1.5 rounded hover:bg-purple-200 border border-purple-200 text-xs font-bold"
+                className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300 border-2 border-zinc-300 dark:border-zinc-600 text-xs font-black hover:border-black dark:hover:border-zinc-400 transition"
               >
                 Sort by Date
               </button>
@@ -600,7 +600,7 @@ export const EventDetails = () => {
                     sort_order: timeline.length + 1 
                   }]);
                 }} 
-                className="bg-gray-800 text-white px-3 py-1.5 rounded hover:bg-gray-900 text-xs font-bold shadow-sm"
+                className="px-3 py-1.5 bg-black dark:bg-zinc-800 text-white border-2 border-black dark:border-zinc-600 text-xs font-black hover:bg-red-600 dark:hover:bg-red-600 hover:border-red-600 transition"
               >
                 + Add Round
               </button>
@@ -720,12 +720,12 @@ export const EventDetails = () => {
                   onDragOver={onDragOver}
                   onDrop={() => onDrop(idx, 'timeline', timeline, setTimeline)}
                   className={`flex gap-4 p-4 border-2 rounded-md cursor-move transition-colors ${
-                    isReg ? 'bg-blue-50/50 border-blue-300 hover:border-blue-500' :
-                    isSub ? 'bg-purple-50/50 border-purple-300 hover:border-purple-500' :
-                    'bg-gray-50 border-gray-200 hover:border-gray-400'
+                    isReg ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800 hover:border-blue-500 dark:hover:border-blue-600' :
+                    isSub ? 'bg-purple-50/50 dark:bg-purple-950/20 border-purple-300 dark:border-purple-800 hover:border-purple-500 dark:hover:border-purple-600' :
+                    'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                   }`}
                 >
-                  <div className="flex flex-col justify-center text-gray-400">
+                  <div className="flex flex-col justify-center text-zinc-400 dark:text-zinc-500">
                     <span className="text-xl select-none">≡</span>
                   </div>
                   <div className="flex-1 space-y-3">
@@ -746,34 +746,34 @@ export const EventDetails = () => {
                           Custom Round #{idx + 1}
                         </span>
                       )}
-                      <span className="text-xs text-gray-400 font-bold">Sort Order: {idx + 1}</span>
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500 font-bold">Sort Order: {idx + 1}</span>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Round / Milestone Title</label>
+                      <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1">Round / Milestone Title</label>
                       <input 
                         value={item.title} 
                         onChange={(e) => { const n = [...timeline]; n[idx].title = e.target.value; setTimeline(n); }} 
                         placeholder="e.g. Registration, Submission, Round 1: PPT Submission" 
-                        className="w-full p-2 border rounded text-sm font-bold bg-white" 
+                        className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm font-bold focus:border-red-500 focus:outline-none" 
                         required 
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Description (Optional)</label>
+                      <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1">Description (Optional)</label>
                       <textarea 
                         value={item.description || ''} 
                         onChange={(e) => { const n = [...timeline]; n[idx].description = e.target.value; setTimeline(n); }} 
                         placeholder="Provide details or instructions for this round..." 
                         rows={2}
-                        className="w-full p-2 border rounded text-sm bg-white" 
+                        className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
+                        <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1">
                           Start Date & Time {isReg && '(Registration Opens)'} {isSub && '(Submissions Unlock)'}
                         </label>
                         <input 
@@ -785,17 +785,17 @@ export const EventDetails = () => {
                             n[idx].start_datetime = new Date(e.target.value).toISOString(); 
                             setTimeline(n); 
                           }} 
-                          className="w-full p-2 border rounded text-sm bg-white" 
+                          className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 
                           required 
                         />
                         {item.start_datetime && (
-                          <p className="text-[11px] text-gray-500 font-medium mt-1">
-                            Starts: <strong className="text-gray-800">{formatPreviewDatetime(item.start_datetime)}</strong>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                            Starts: <strong className="text-zinc-800 dark:text-zinc-200">{formatPreviewDatetime(item.start_datetime)}</strong>
                           </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
+                        <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1">
                           End Date & Time {isReg && '(Registration Deadline)'} {isSub && '(Submission Deadline)'}
                         </label>
                         <input 
@@ -806,11 +806,11 @@ export const EventDetails = () => {
                             n[idx].end_datetime = e.target.value ? new Date(e.target.value).toISOString() : null; 
                             setTimeline(n); 
                           }} 
-                          className="w-full p-2 border rounded text-sm bg-white" 
+                          className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 
                         />
                         {item.end_datetime && (
-                          <p className="text-[11px] text-gray-500 font-medium mt-1">
-                            Ends: <strong className="text-gray-800">{formatPreviewDatetime(item.end_datetime)}</strong>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                            Ends: <strong className="text-zinc-800 dark:text-zinc-200">{formatPreviewDatetime(item.end_datetime)}</strong>
                           </p>
                         )}
                       </div>

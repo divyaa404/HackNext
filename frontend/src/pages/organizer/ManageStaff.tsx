@@ -68,20 +68,22 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
     try {
       const res = await axios.post(`/api/invites/create`, { 
         role, 
-        name: formData.name, 
-        email: formData.email, 
-        designation: formData.designation 
+        name: formData.name.trim(), 
+        email: formData.email.trim() || undefined, 
+        designation: formData.designation.trim() || undefined 
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setProvisionResult({
         staff_id: res.data.staff_id,
         tempPassword: res.data.tempPassword,
-        name: formData.name
+        name: formData.name.trim()
       });
       loadStaff();
-    } catch (err) {
-      alert('Failed to generate account');
+    } catch (err: any) {
+      console.error('Failed to create staff/judge:', err);
+      const msg = err.response?.data?.error || err.message || 'Failed to generate account';
+      alert(msg);
     }
   };
 
