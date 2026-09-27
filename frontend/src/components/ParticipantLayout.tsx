@@ -25,12 +25,19 @@ export const ParticipantLayout = () => {
 
   // Instead of conditional rendering for !isParticipant, wrap everything in the layout
   // so the navbar is always visible to everyone
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [theme]);
 
