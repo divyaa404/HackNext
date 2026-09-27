@@ -596,7 +596,7 @@ export const JudgeDashboard = () => {
                 </div>
 
                 {/* 2. RIGHT PANEL: Team Details, Abstract, Links & Evaluation Scorecard (Non-scrolling compact) */}
-                <div className="w-[440px] lg:w-[480px] xl:w-[540px] shrink-0 h-full flex flex-col justify-between bg-white dark:bg-black overflow-y-auto no-scrollbar p-4 space-y-3 border-l border-zinc-200 dark:border-zinc-800">
+                <div className="w-[460px] lg:w-[520px] xl:w-[580px] shrink-0 h-full flex flex-col justify-between bg-white dark:bg-black overflow-y-auto no-scrollbar p-4 space-y-3 border-l border-zinc-200 dark:border-zinc-800">
                   
                   {/* Top Section: Header, Team Roster, Abstract & Links */}
                   <div className="space-y-2.5">
@@ -726,60 +726,75 @@ export const JudgeDashboard = () => {
                         </div>
                       )}
 
-                      {/* 2x2 Grid:
-                          Row 1: Innovation & Problem Solving  |  Technical Architecture & Code
-                          Row 2: UI / UX Design & Usability    |  Presentation & Pitch Delivery
-                      */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {RUBRIC_CRITERIA.map((criterion) => {
+                      {/* 4 Scorecards in 1 Single Row */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {RUBRIC_CRITERIA.map((criterion, idx) => {
                           const currentVal = factorScores[criterion.id] ?? 0;
+                          const shortTitles = ['Innovation', 'Technical', 'UI / UX', 'Pitch'];
+                          const pct = Math.min(100, Math.max(0, (currentVal / criterion.maxScore) * 100));
+
                           return (
                             <div 
                               key={criterion.id} 
-                              className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 space-y-1 hover:border-zinc-400 dark:hover:border-zinc-700 transition-colors shadow-sm"
+                              className="p-2 rounded-lg border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 flex flex-col justify-between hover:border-red-600 dark:hover:border-red-500 transition-all shadow-[2px_2px_0px_rgba(0,0,0,0.8)] dark:shadow-[2px_2px_0px_rgba(255,255,255,0.15)] group"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-extrabold text-black dark:text-white truncate pr-1" title={criterion.name}>
-                                  {criterion.id === 'innovation' && '1. Innovation & Problem'}
-                                  {criterion.id === 'technical' && '2. Tech Architecture'}
-                                  {criterion.id === 'ui_ux' && '3. UI / UX Usability'}
-                                  {criterion.id === 'presentation' && '4. Pitch & Presentation'}
+                              {/* Card Header */}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-900 dark:text-zinc-100 truncate" title={criterion.name}>
+                                  {idx + 1}. {shortTitles[idx]}
                                 </span>
                                 <span className="text-[9px] font-mono font-bold text-zinc-400 shrink-0">
-                                  /25
+                                  /{criterion.maxScore}
                                 </span>
                               </div>
 
-                              <div className="flex items-center space-x-1">
+                              {/* Number Input & Stepper Controls */}
+                              <div className="flex items-center justify-between bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded my-1 px-1 py-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleScoreChange(criterion.id, Math.max(0, currentVal - 1))}
+                                  className="w-5 h-6 flex items-center justify-center font-black text-xs text-zinc-600 dark:text-zinc-400 hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded transition select-none active:scale-90"
+                                  title="Decrease by 1"
+                                >
+                                  -
+                                </button>
+                                
                                 <input
                                   type="number"
                                   min="0"
                                   max={criterion.maxScore}
-                                  value={currentVal}
+                                  value={currentVal === 0 ? '0' : currentVal}
+                                  onFocus={(e) => e.target.select()}
                                   onChange={(e) => {
-                                    const parsed = parseInt(e.target.value, 10);
-                                    handleScoreChange(criterion.id, isNaN(parsed) ? 0 : parsed);
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                      handleScoreChange(criterion.id, 0);
+                                      return;
+                                    }
+                                    const parsed = parseInt(val, 10);
+                                    const clamped = Math.min(criterion.maxScore, Math.max(0, isNaN(parsed) ? 0 : parsed));
+                                    handleScoreChange(criterion.id, clamped);
                                   }}
-                                  className="w-full px-2 py-0.5 text-center font-mono font-black text-xs rounded border border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white focus:outline-none focus:border-red-600 dark:focus:border-red-500 transition-all shadow-sm"
+                                  className="w-10 text-center font-mono font-black text-sm bg-transparent text-zinc-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   placeholder="0"
                                 />
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleScoreChange(criterion.id, Math.min(criterion.maxScore, currentVal + 1))}
+                                  className="w-5 h-6 flex items-center justify-center font-black text-xs text-zinc-600 dark:text-zinc-400 hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded transition select-none active:scale-90"
+                                  title="Increase by 1"
+                                >
+                                  +
+                                </button>
                               </div>
 
-                              <div className="flex justify-between text-[9px] font-mono text-zinc-400 pt-0.5">
-                                {[5, 15, 20, 25].map((pts) => (
-                                  <button 
-                                    key={pts}
-                                    type="button" 
-                                    onClick={() => handleScoreChange(criterion.id, pts)} 
-                                    className={`px-1.5 py-0.5 rounded font-black transition-all ${
-                                      currentVal === pts 
-                                        ? 'bg-red-600 text-white shadow-sm' 
-                                        : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
-                                    }`}
-                                  >
-                                    {pts}
-                                  </button>
-                                ))}
+                              {/* Visual Score Fill Bar */}
+                              <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-1 rounded-full overflow-hidden mt-1">
+                                <div 
+                                  className="bg-red-600 h-full transition-all duration-300 rounded-full"
+                                  style={{ width: `${pct}%` }}
+                                />
                               </div>
                             </div>
                           );
@@ -792,7 +807,7 @@ export const JudgeDashboard = () => {
                           <MessageSquare className="w-3.5 h-3.5 absolute left-2.5 top-2 text-zinc-400" />
                           <input
                             type="text"
-                            placeholder="Optional evaluation comments..."
+                            placeholder="Optional evaluation feedback comments..."
                             value={judgeFeedback}
                             onChange={(e) => setJudgeFeedback(e.target.value)}
                             className="w-full pl-8 pr-2.5 py-1 text-[11px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all"
@@ -804,14 +819,14 @@ export const JudgeDashboard = () => {
                       <button
                         type="submit"
                         disabled={submittingScore}
-                        className="w-full py-2 rounded-lg bg-black dark:bg-white text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:bg-red-600 dark:hover:bg-red-600 dark:hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 rounded-lg bg-black dark:bg-white text-white dark:text-black font-black text-xs uppercase tracking-wider hover:bg-red-600 dark:hover:bg-red-600 dark:hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                       >
                         {submittingScore ? (
-                          <span>Saving Marks...</span>
+                          <span>Saving Evaluation...</span>
                         ) : (
                           <>
                             <Send className="w-3.5 h-3.5" />
-                            <span>Submit Evaluation ({totalCalculatedScore}/100)</span>
+                            <span>Submit Score ({totalCalculatedScore}/100)</span>
                           </>
                         )}
                       </button>
