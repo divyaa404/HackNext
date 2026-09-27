@@ -156,10 +156,17 @@ router.get('/:slug/public/teams', async (req, res) => {
 // Get public projects
 router.get('/:slug/public/projects', async (req, res) => {
   try {
-    const event = await prisma.event.findUnique({
+    let event = await prisma.event.findUnique({
       where: { slug: req.params.slug },
       select: { id: true, show_public_projects: true }
     });
+
+    if (!event) {
+      event = await prisma.event.findFirst({
+        orderBy: { start_date: 'desc' },
+        select: { id: true, show_public_projects: true }
+      });
+    }
 
     if (!event) return res.status(404).json({ error: 'Event not found' });
     if (!event.show_public_projects) return res.json([]);
@@ -175,6 +182,58 @@ router.get('/:slug/public/projects', async (req, res) => {
     });
     res.json(projects);
   } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get public results / leaderboard
+router.get('/:slug/public/results', async (req, res) => {
+  try {
+    let event = await prisma.event.findUnique({
+      where: { slug: req.params.slug },
+      select: { id: true, show_public_results: true, name: true }
+    });
+
+    if (!event) {
+      event = await prisma.event.findFirst({
+        orderBy: { start_date: 'desc' },
+        select: { id: true, show_public_results: true, name: true }
+      });
+    }
+
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (!event.show_public_results) return res.status(403).json({ error: 'Results are not published yet' });
+
+    const submissions = await prisma.submission.findMany({
+      where: { event_id: event.id, status: 'submitted' },
+      include: {
+        team: { select: { id: true, name: true } },
+        scores: true
+      }
+    });
+
+    const results = submissions.map(sub => {
+      const totalScore = sub.scores.reduce((acc, s) => acc + (s.weighted_score || s.raw_score || 0), 0);
+      const avgScore = sub.scores.length > 0 ? totalScore / sub.scores.length : 0;
+      return {
+        id: sub.id,
+        title: sub.title,
+        description: sub.description,
+        repo_url: sub.repo_url,
+        demo_video_url: sub.demo_video_url,
+        teamName: sub.team?.name || 'Unknown Team',
+        totalScore: Math.round(avgScore * 10) / 10,
+        evaluationsCount: sub.scores.length,
+        submitted_at: sub.submitted_at
+      };
+    }).sort((a, b) => b.totalScore - a.totalScore);
+
+    res.json({
+      eventName: event.name,
+      results
+    });
+  } catch (error) {
+    console.error('Public results error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

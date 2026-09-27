@@ -31,6 +31,8 @@ import { JudgeDashboard } from './pages/judge/JudgeDashboard';
 import { HackathonDetails } from './pages/public/HackathonDetails';
 import { SetupWizard } from './pages/auth/SetupWizard';
 
+import { Results } from './pages/participant/Results';
+
 function App() {
   return (
     <AuthProvider>
@@ -64,8 +66,10 @@ function App() {
           <Route element={<ParticipantLayout />}>
             <Route path="/" element={<HackathonDetails />} />
             <Route path="/participant" element={<Navigate to="/participant/team" replace />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/participant/results" element={<Results />} />
 
-            <Route element={<ProtectedRoute allowedRoles={['participant']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['participant', 'organizer', 'admin']} />}>
               <Route path="/participant/profile" element={<Profile />} />
               <Route path="/participant/team" element={<TeamDetails />} />
               <Route path="/participant/team/create" element={<CreateTeam />} />
@@ -73,7 +77,6 @@ function App() {
               <Route path="/participant/submission" element={<Submission />} />
               <Route path="/participant/notifications" element={<div className="p-8 bg-bauhaus-card border-4 border-bauhaus-border">Notifications coming soon...</div>} />
               <Route path="/participant/projects" element={<div className="p-8 bg-bauhaus-card border-4 border-bauhaus-border">Projects gallery coming soon...</div>} />
-              <Route path="/participant/results" element={<div className="p-8 bg-bauhaus-card border-4 border-bauhaus-border">Results coming soon...</div>} />
             </Route>
           </Route>
 

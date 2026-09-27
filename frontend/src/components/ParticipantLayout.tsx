@@ -1,7 +1,8 @@
 import { useState, useContext, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { User, Users, FileText, LogOut, X, Sun, Moon, UserCircle, Menu, PlusCircle, LogIn, UserPlus } from 'lucide-react';
+import { User, Users, FileText, LogOut, X, Sun, Moon, UserCircle, Menu, PlusCircle, LogIn, UserPlus, Trophy } from 'lucide-react';
 
 export const ParticipantLayout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -9,6 +10,7 @@ export const ParticipantLayout = () => {
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showResults, setShowResults] = useState(false);
 
   const confirmLogout = () => {
     setShowLogoutConfirm(false);
@@ -22,6 +24,23 @@ export const ParticipantLayout = () => {
     window.addEventListener('toggleSidebar', handler);
     return () => window.removeEventListener('toggleSidebar', handler);
   }, []);
+
+  // Fetch event public configuration to see if Results are toggled ON
+  useEffect(() => {
+    const checkEventVisibility = async () => {
+      try {
+        const res = await axios.get('/api/public/events/latest/public');
+        if (res.data?.show_public_results) {
+          setShowResults(true);
+        } else {
+          setShowResults(false);
+        }
+      } catch (e) {
+        // ignore fallback
+      }
+    };
+    checkEventVisibility();
+  }, [location.pathname]);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme');
@@ -41,6 +60,7 @@ export const ParticipantLayout = () => {
 
   const navLinks = [
     { label: 'Overview', path: '/', icon: User },
+    ...(showResults ? [{ label: 'Results', path: '/participant/results', icon: Trophy }] : []),
     { label: 'My Team', path: '/participant/team', icon: Users },
     { label: 'Join Team', path: '/participant/team/join', icon: PlusCircle },
     { label: 'Submission', path: '/participant/submission', icon: FileText },
