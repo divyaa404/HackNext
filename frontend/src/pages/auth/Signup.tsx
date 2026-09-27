@@ -58,7 +58,7 @@ export const Signup = () => {
               required
             />
           </div>
-          <button type="submit" className="w-full bg-bauhaus-secondary text-black py-4 px-4 border-4 border-bauhaus-border hover:bg-bauhaus-accent font-black uppercase tracking-widest text-lg transition-colors">
+          <button type="submit" className="w-full bg-red-600 text-white py-4 px-4 border-4 border-bauhaus-border hover:bg-red-700 font-black uppercase tracking-widest text-lg transition-colors">
             Create Account
           </button>
         </form>
