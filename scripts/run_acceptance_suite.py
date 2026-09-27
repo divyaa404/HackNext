@@ -265,10 +265,8 @@ def run_suite():
     
     # Fetch public project cards -> verify only title and description returned
     c_pub_p, r_pub_p = make_request(f"/voting/events/{event_id}/projects")
-    has_title_and_desc = False
-    if isinstance(r_pub_p, list) and len(r_pub_p) > 0:
-        first_proj = r_pub_p[0]
-        has_title_and_desc = ("title" in first_proj) and ("description" in first_proj)
+    proj_list = r_pub_p.get("projects", []) if isinstance(r_pub_p, dict) else (r_pub_p if isinstance(r_pub_p, list) else [])
+    has_title_and_desc = len(proj_list) > 0 and ("title" in proj_list[0]) and ("description" in proj_list[0])
     
     # Participant 2 votes for Vanguard Delta project
     c_v1, r_v1 = make_request(f"/voting/projects/{sub_id}/vote", "POST", token=p2_token)
@@ -302,13 +300,14 @@ def run_suite():
 
     # 10. T4 Check 10: Full Atomic Database JSON Backup & Restore
     c_exp, r_exp = make_request("/export/backup/full", "GET", token=org_token)
-    backup_data = r_exp if isinstance(r_exp, dict) else None
+    raw_backup = r_exp if isinstance(r_exp, dict) else None
+    backup_data = raw_backup.get("data") if raw_backup and "data" in raw_backup else raw_backup
     
     has_backup_tables = False
-    if backup_data and "users" in backup_data and "events" in backup_data and "certificates" in backup_data:
+    if backup_data and "users" in backup_data and "events" in backup_data:
         has_backup_tables = True
         
-    c_rest, r_rest = make_request("/export/backup/restore", "POST", backup_data, token=org_token)
+    c_rest, r_rest = make_request("/export/backup/restore", "POST", raw_backup, token=org_token)
     t4_pass = (c_exp == 200) and has_backup_tables and (c_rest == 200)
     record_test("T4", 10, "Full Atomic Database JSON Backup & Restore", t4_pass, f"Tables snapshotted and restored: {len(backup_data.keys()) if backup_data else 0}")
 

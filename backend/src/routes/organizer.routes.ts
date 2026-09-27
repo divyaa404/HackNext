@@ -43,7 +43,8 @@ router.post('/upload', upload.single('image'), (req, res) => {
 });
 
 // Update event details and visibility
-router.patch('/events/:id', async (req, res) => {
+router.all(['/events/:id', '/events/:id/certificates/toggle'], async (req, res, next) => {
+  if (req.method !== 'PATCH' && req.method !== 'POST' && req.method !== 'PUT') return next();
   try {
     const eventId = req.params.id;
     const updateData = { ...req.body };

@@ -1,0 +1,37 @@
+# HackNext Acceptance Test Report
+Generated: 2026-09-27 19:38:31 UTC
+Overall Status: PASSED (100%)
+
+## Summary of Claims
+- Claimed Tiers: T1 (Core), T2 (Judging & Security), T3 (Public & Certificates), T4 (Portability)
+- Offline Ready: YES (0 external CDNs, fonts, or third-party APIs)
+
+## Tier Breakdown
+
+### T1 - PASSED (3/3 Checks Passed)
+- [✓] Check 1: Role-Based Authentication & Token Validation
+    * Details: Organizer, Participant, Judge registered and verified
+- [✓] Check 2: Event Lifecycle & 5-Step Timeline with +1 Hour Extension
+    * Details: Phases: Registration, Project Submission, Evaluation, Community Voting, Result Out
+- [✓] Check 3: Team Formation & Project Submissions
+    * Details: Team: 853f4dd8-97a3-4586-8035-5d10861ce283, Sub: dc8224ec-9da3-4ab1-a042-d1a096ff3a96
+
+### T2 - PASSED (4/4 Checks Passed)
+- [✓] Check 4: Scoring Rubrics & Multi-Factor Evaluation
+    * Details: Rubric weight: 100% (Default 4 criteria)
+- [✓] Check 5: Strict Role Isolation (Peer Judge Access Blocked)
+    * Details: HTTP 403 Forbidden properly returned for peer scores
+- [✓] Check 6: Offline Reset Passkey Generation (15m TTL)
+    * Details: Generated Passkey: RST-0724-5E60
+- [✓] Check 7: Session Management & Authentication Integrity
+    * Details: Session issued and validated
+
+### T3 - PASSED (2/2 Checks Passed)
+- [✓] Check 8: Community Project Voting & 1-Vote Constraint
+    * Details: Vote 1: 201, Vote 2 Rejected: 400, Gallery sanitized: True
+- [✓] Check 9: Certificate Studio & Integrity Hash Verification
+    * Details: Generated 1 vector certificates with SHA-256 integrity hashes
+
+### T4 - PASSED (1/1 Checks Passed)
+- [✓] Check 10: Full Atomic Database JSON Backup & Restore
+    * Details: Tables snapshotted and restored: 9
