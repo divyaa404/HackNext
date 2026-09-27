@@ -28,13 +28,12 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       }
     }
 
-    // Force password change on first login/reset
-    // We must allow /change-password AND /me so the frontend can fetch the user object to see the flag!
-    if (user.must_change_password && !req.originalUrl.includes('/change-password') && !req.originalUrl.includes('/me')) {
+    // Force password change on first login/reset for admin/judge/participant (bypass for root organizer)
+    if (user.role !== 'organizer' && user.must_change_password && !req.originalUrl.includes('/change-password') && !req.originalUrl.includes('/me')) {
       return res.status(403).json({ error: 'MUST_CHANGE_PASSWORD', message: 'You must change your temporary password before accessing the system.' });
     }
 
-    (req as any).user = decoded;
+    (req as any).user = user;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });

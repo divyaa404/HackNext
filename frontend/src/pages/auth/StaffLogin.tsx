@@ -66,9 +66,17 @@ export const StaffLogin = () => {
         </div>
 
         <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-2 border-red-500 font-mono text-[10px] font-black uppercase tracking-wider mb-2 mx-auto flex justify-center">
-          <span>Secure Staff Portal</span>
+          <span>
+            {selectedRole === 'organizer' && 'Root Organizer Access'}
+            {selectedRole === 'admin' && 'Staff Administrator Access'}
+            {selectedRole === 'judge' && 'Judge & Evaluator Access'}
+          </span>
         </div>
-        <h1 className="text-2xl font-black text-center text-zinc-900 dark:text-white mb-6 uppercase tracking-tight">Admin Portal</h1>
+        <h1 className="text-2xl font-black text-center text-zinc-900 dark:text-white mb-6 uppercase tracking-tight">
+          {selectedRole === 'organizer' && 'Organizer Login'}
+          {selectedRole === 'admin' && 'Admin Login'}
+          {selectedRole === 'judge' && 'Judge Login'}
+        </h1>
 
         {/* Role Selection Boxes */}
         <div className="grid grid-cols-3 gap-3 mb-8">
@@ -108,13 +116,19 @@ export const StaffLogin = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">ID Number</label>
+            <label className="block text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
+              {selectedRole === 'organizer' ? 'Organizer Staff ID' : selectedRole === 'admin' ? 'Admin Staff ID' : 'Judge Staff ID'}
+            </label>
             <input
               type="text"
               value={staffId}
               onChange={e => setStaffId(e.target.value)}
               className="w-full px-3 py-2.5 border-2 border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-red-500 dark:focus:border-red-500 font-mono text-sm transition"
-              placeholder="e.g. ORG-X7K4M92Q"
+              placeholder={
+                selectedRole === 'organizer' ? 'e.g. ORG-X7K4M92Q' :
+                selectedRole === 'admin' ? 'e.g. ADM-94A1F2C0' :
+                'e.g. JDG-B06C884F'
+              }
               required
             />
           </div>

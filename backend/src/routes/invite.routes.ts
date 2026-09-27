@@ -54,20 +54,25 @@ router.post('/create', requireAuth, requireRole('organizer', 'admin'), async (re
       }
     });
 
-    // If role is judge, also ensure a Judge record exists for the current/latest event
+    // If role is judge, link to all hackathon events
     if (role === 'judge') {
       try {
-        const activeEvent = await prisma.event.findFirst({ orderBy: { start_date: 'desc' } });
-        if (activeEvent) {
-          await prisma.judge.create({
-            data: {
-              user_id: newUser.id,
-              event_id: activeEvent.id,
-              display_name: newUser.name || newUser.email || newUser.staff_id,
-              designation: newUser.designation || 'Judge',
-              show_publicly: false
-            }
+        const events = await prisma.event.findMany();
+        for (const evt of events) {
+          const existing = await prisma.judge.findFirst({
+            where: { user_id: newUser.id, event_id: evt.id }
           });
+          if (!existing) {
+            await prisma.judge.create({
+              data: {
+                user_id: newUser.id,
+                event_id: evt.id,
+                display_name: newUser.name || newUser.email || newUser.staff_id,
+                designation: newUser.designation || 'Judge',
+                show_publicly: false
+              }
+            });
+          }
         }
       } catch (judgeErr) {
         console.warn('Note: Could not link Judge record to event:', judgeErr);
