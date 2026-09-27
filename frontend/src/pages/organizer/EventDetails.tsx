@@ -871,12 +871,15 @@ export const EventDetails = () => {
         </div>
 
         {/* Contacts Section */}
-        <div className="bg-white shadow rounded-lg p-6 border-t-4 border-pink-500">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Admin Contacts</h2>
+        <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] border-t-4 border-t-pink-500">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Admin Contacts</h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Assigned organizers/admins displayed on the public event page.</p>
+            </div>
             <div className="flex gap-2">
               <select 
-                className="border rounded p-2 text-sm font-bold"
+                className="border-2 border-black dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded p-2 text-xs font-black uppercase tracking-wider"
                 onChange={(e) => {
                   const selectedId = e.target.value;
                   if (!selectedId) return;
@@ -902,76 +905,124 @@ export const EventDetails = () => {
                 onDragStart={() => onDragStart(idx, 'contacts')}
                 onDragOver={onDragOver}
                 onDrop={() => onDrop(idx, 'contacts', contacts, setContacts)}
-                className="flex gap-4 p-4 border rounded-md bg-gray-50 items-start cursor-move hover:border-pink-400 transition-colors"
+                className="flex gap-4 p-4 border-2 border-black dark:border-zinc-700 rounded-md bg-zinc-50 dark:bg-zinc-800/60 items-start cursor-move hover:border-pink-500 transition-colors"
               >
-                <div className="flex flex-col justify-center text-gray-400 py-2">
+                <div className="flex flex-col justify-center text-zinc-400 py-2 font-mono">
                   <span className="text-xl">≡</span>
                 </div>
-                <div className="flex-1 grid grid-cols-2 gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase">Name (Auto-filled)</label>
-                    <input value={item.name} readOnly className="w-full p-2 border rounded text-sm bg-gray-100 font-bold" />
+                    <label className="block text-xs font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1">Name (Auto-filled)</label>
+                    <input value={item.name} readOnly className="w-full p-2.5 border-2 border-black dark:border-zinc-700 rounded text-xs bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white font-black" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase">Email</label>
-                    <input value={item.email || ''} onChange={(e) => { const n = [...contacts]; n[idx].email = e.target.value; setContacts(n); }} placeholder="Email" className="w-full p-2 border rounded text-sm" />
+                    <label className="block text-xs font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1">Email</label>
+                    <input value={item.email || ''} onChange={(e) => { const n = [...contacts]; n[idx].email = e.target.value; setContacts(n); }} placeholder="Email" className="w-full p-2.5 border-2 border-black dark:border-zinc-700 rounded text-xs bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white font-medium" />
                   </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 uppercase">Phone Number</label>
-                    <input value={item.phone || ''} onChange={(e) => { const n = [...contacts]; n[idx].phone = e.target.value; setContacts(n); }} placeholder="Phone Number" className="w-full p-2 border rounded text-sm" />
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1">Phone Number</label>
+                    <input value={item.phone || ''} onChange={(e) => { const n = [...contacts]; n[idx].phone = e.target.value; setContacts(n); }} placeholder="Phone Number" className="w-full p-2.5 border-2 border-black dark:border-zinc-700 rounded text-xs bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white font-medium" />
                   </div>
                 </div>
-                <button type="button" onClick={() => setContacts(contacts.filter((_, i) => i !== idx))} className="text-red-500 font-bold p-2">X</button>
+                <button type="button" onClick={() => setContacts(contacts.filter((_, i) => i !== idx))} className="text-red-600 dark:text-red-400 font-black p-2 border-2 border-transparent hover:border-red-600 rounded transition">X</button>
               </div>
             ))}
-            {contacts.length === 0 && <p className="text-gray-500 italic">No contacts configured.</p>}
-            <div className="flex justify-end"><button type="submit" className="bg-pink-600 text-white px-6 py-2 rounded font-bold">Save Contacts</button></div>
+            {contacts.length === 0 && <p className="text-xs font-bold text-zinc-500 italic">No contacts configured.</p>}
+            <div className="flex justify-end">
+              <button type="submit" disabled={isSaving} className="px-5 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] transition">
+                Save Contacts
+              </button>
+            </div>
           </form>
         </div>
 
-        {/* Visibility Toggles (Judges removed) */}
-        <div className="bg-white shadow rounded-lg p-6 border-t-4 border-gray-500">
-          <h2 className="text-2xl font-bold mb-6">Public Page Visibility</h2>
-          <form className="space-y-4" onSubmit={(e) => {
+        {/* Visibility Toggles Section */}
+        <div className="bauhaus-card bg-white dark:bg-zinc-900 p-6 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] border-t-4 border-t-blue-500">
+          <div className="mb-6">
+            <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">Public Page Visibility</h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Toggle visibility of specific sections and features on the public hackathon page and navigation.</p>
+          </div>
+          <form className="space-y-6" onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.target as HTMLFormElement);
             const data = {
-              show_public_teams: formData.get('show_public_teams') === 'on',
-              show_public_projects: formData.get('show_public_projects') === 'on',
-              show_public_results: formData.get('show_public_results') === 'on',
-              show_prizes: formData.get('show_prizes') === 'on',
-              show_eligibility: formData.get('show_eligibility') === 'on',
-              show_rules: formData.get('show_rules') === 'on',
-              show_timeline: formData.get('show_timeline') === 'on',
-              show_contacts: formData.get('show_contacts') === 'on',
-              // Force judges to false permanently
+              show_public_teams: formData.get('show_public_teams') === 'true',
+              show_public_projects: formData.get('show_public_projects') === 'true',
+              show_public_results: formData.get('show_public_results') === 'true',
+              show_prizes: formData.get('show_prizes') === 'true',
+              show_eligibility: formData.get('show_eligibility') === 'true',
+              show_rules: formData.get('show_rules') === 'true',
+              show_timeline: formData.get('show_timeline') === 'true',
+              show_contacts: formData.get('show_contacts') === 'true',
               show_public_judges: false
             };
-            handleUpdateEvent({ preventDefault: () => {}, target: { ...e.target, elements: {} } } as any);
-            api.patch(`/organizer/events/${id}`, data).then(() => showToast('Visibility updated!', 'success')).catch(() => showToast('Failed to update visibility', 'error'));
+            setIsSaving(true);
+            api.patch(`/organizer/events/${id}`, data)
+              .then(() => {
+                showToast('Visibility settings saved!', 'success');
+                loadEventDetails();
+              })
+              .catch(() => showToast('Failed to update visibility', 'error'))
+              .finally(() => setIsSaving(false));
           }}>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                'show_public_teams', 'show_public_projects',
-                'show_public_results', 'show_prizes', 'show_eligibility',
-                'show_rules', 'show_timeline', 'show_contacts'
-              ].map((field) => (
-                <div key={field} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name={field}
-                    id={field}
-                    defaultChecked={event[field]}
-                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <label htmlFor={field} className="ml-3 block text-sm font-medium text-gray-900 capitalize">
-                    {field.replace('show_public_', '').replace('show_', '')}
-                  </label>
-                </div>
-              ))}
+                { key: 'show_public_results', label: 'Publish Leaderboard & Results', desc: 'Display official ranking and results tab in navigation and public portal' },
+                { key: 'show_public_teams', label: 'Public Teams Directory', desc: 'Display registered teams on public page' },
+                { key: 'show_public_projects', label: 'Public Projects Gallery', desc: 'Display submitted hackathon projects publicly' },
+                { key: 'show_prizes', label: 'Prizes & Rewards', desc: 'Display prize pool and category tracks' },
+                { key: 'show_eligibility', label: 'Eligibility Criteria', desc: 'Display participant eligibility requirements' },
+                { key: 'show_rules', label: 'Rules & Guidelines', desc: 'Display hackathon guidelines and rules' },
+                { key: 'show_timeline', label: 'Dates & Deadlines Timeline', desc: 'Display schedule, timeline, and rounds' },
+                { key: 'show_contacts', label: 'Admin Contacts', desc: 'Display organizer contact information' }
+              ].map((item) => {
+                const isChecked = !!event[item.key];
+                return (
+                  <div 
+                    key={item.key} 
+                    className="flex items-center justify-between p-4 border-2 border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 rounded-md gap-4 hover:border-black dark:hover:border-zinc-500 transition-colors"
+                  >
+                    <div className="flex-1 pr-3">
+                      <span className="block text-xs font-black uppercase text-zinc-900 dark:text-white">
+                        {item.label}
+                      </span>
+                      <span className="block text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                        {item.desc}
+                      </span>
+                    </div>
+
+                    <input type="hidden" name={item.key} value={event[item.key] ? 'true' : 'false'} />
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isChecked}
+                      onClick={() => {
+                        const updatedVal = !event[item.key];
+                        setEvent({ ...event, [item.key]: updatedVal });
+                      }}
+                      className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-black dark:border-white p-0.5 transition-colors duration-200 ease-in-out focus:outline-none ${
+                        isChecked ? 'bg-red-600' : 'bg-zinc-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white border border-black shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          isChecked ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-            <div className="pt-4 flex justify-end">
-              <button type="submit" className="bg-gray-800 text-white px-6 py-2 rounded shadow hover:bg-gray-900 font-bold">Update Visibility</button>
+            <div className="pt-2 flex justify-end">
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black font-black text-xs uppercase tracking-wider border-2 border-black dark:border-white shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:bg-zinc-800 dark:hover:bg-zinc-200 transition"
+              >
+                {isSaving ? 'Saving...' : 'Update Visibility Settings'}
+              </button>
             </div>
           </form>
         </div>
