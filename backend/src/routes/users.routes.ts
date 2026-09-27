@@ -106,15 +106,30 @@ router.put('/:id', requireAuth, requireRole('organizer', 'admin'), async (req, r
     const { id } = req.params;
     const { name, email, designation } = req.body;
     
+    const cleanEmail = email && typeof email === 'string' && email.trim().length > 0 ? email.trim().toLowerCase() : null;
+
+    if (cleanEmail) {
+      const existing = await prisma.user.findFirst({
+        where: { email: cleanEmail, NOT: { id } }
+      });
+      if (existing) {
+        return res.status(400).json({ error: `Email ${cleanEmail} is already in use by another user` });
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: { name, email, designation }
+      data: { 
+        name: name && typeof name === 'string' && name.trim().length > 0 ? name.trim() : null, 
+        email: cleanEmail, 
+        designation: designation && typeof designation === 'string' && designation.trim().length > 0 ? designation.trim() : null 
+      }
     });
     
     res.json(updatedUser);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to update user' });
+  } catch (error: any) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: error?.message || 'Failed to update user' });
   }
 });
 
