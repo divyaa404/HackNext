@@ -14,9 +14,7 @@ import {
   Upload,
   Move,
   Type,
-  Palette,
-  CheckCircle2,
-  X
+  Palette
 } from 'lucide-react';
 import { UIModal } from '../../components/UIModal';
 
@@ -635,7 +633,7 @@ export const ManageCertificates = () => {
                   <text
                     x={editingTemplate.config?.name_x ?? 600}
                     y={editingTemplate.config?.name_y ?? 325}
-                    textAnchor={editingTemplate.config?.text_align || 'middle'}
+                    textAnchor={(editingTemplate.config?.text_align as any) || 'middle'}
                     fontSize={editingTemplate.config?.name_font_size ?? 46}
                     fontWeight="900"
                     fill={editingTemplate.config?.name_color || '#dc2626'}
