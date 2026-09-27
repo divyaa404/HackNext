@@ -11,7 +11,7 @@ import {
   Shield, 
   Gavel, 
   Clock, 
-  CheckSquare, 
+  Award,
   FileSpreadsheet, 
   ListChecks,
   Sun,
@@ -183,9 +183,9 @@ export const OrganizerLayout = () => {
               <div className="px-3 text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5">
                 Event Ops
               </div>
-              <NavItem to="/organizer/timeline" icon={Clock} label="Timeline" />
-              <NavItem to="/organizer/tasks" icon={CheckSquare} label="Tasks" />
+              <NavItem to="/organizer/timeline" icon={Clock} label="Timeline & Deadlines" />
               <NavItem to="/organizer/rubrics" icon={ListChecks} label="Scoring Rubrics" />
+              <NavItem to="/organizer/certificates" icon={Award} label="Certificate Studio" />
             </div>
 
             {/* User Access Group */}

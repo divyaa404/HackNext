@@ -68,11 +68,10 @@ export const JoinTeam = () => {
       await axios.post(`/api/teams/join`, { invite_code: code }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      alert('Joined team successfully!');
       navigate('/participant/team');
     } catch (err: any) {
       if (err.response?.data?.requiresProfile) {
-        alert('You must complete your profile before joining a team.');
+        setError('You must complete your profile before joining a team.');
         navigate('/participant/profile');
       } else {
         setError(err.response?.data?.error || 'Failed to join team');
@@ -175,7 +174,7 @@ export const JoinTeam = () => {
                         disabled={loading || !regStatus.isOpen}
                         onClick={async () => {
                           if (!regStatus.isOpen) {
-                            alert(regStatus.message);
+                            setError(regStatus.message);
                             return;
                           }
                           setLoading(true);
@@ -183,9 +182,9 @@ export const JoinTeam = () => {
                             await axios.post('/api/teams/request-join', { team_id: team.id }, {
                               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                             });
-                            alert('Join request sent to the team leader!');
+                            setError('Join request sent to the team leader!');
                           } catch (err: any) {
-                            alert(err.response?.data?.error || 'Failed to send request');
+                            setError(err.response?.data?.error || 'Failed to send request');
                           } finally {
                             setLoading(false);
                           }

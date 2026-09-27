@@ -1,0 +1,225 @@
+openapi: 3.0.3
+info:
+  title: HackNext REST API
+  description: Offline-first production hackathon platform API for collegiate engineering sprints.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local self-hosted backend server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Server is healthy and database is connected
+
+  /auth/register:
+    post:
+      summary: Register a new participant or organizer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                password: { type: string }
+                role: { type: string, enum: [PARTICIPANT, ORGANIZER, JUDGE] }
+      responses:
+        '201':
+          description: Registration successful, returns user and JWT token
+
+  /auth/login:
+    post:
+      summary: Authenticate user and issue JWT session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful
+
+  /auth/me:
+    get:
+      summary: Fetch current authenticated user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile object
+
+  /events:
+    get:
+      summary: List all published hackathons
+      responses:
+        '200':
+          description: Array of events
+    post:
+      summary: Create new hackathon event (Initializes 5-step timeline and default 4 rubrics)
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Created event object
+
+  /organizer/events/{id}/timeline/{itemId}/extend:
+    post:
+      summary: Extend timeline phase deadline by hours (e.g. +1 hour)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hours: { type: number, default: 1 }
+      responses:
+        '200':
+          description: Deadline extended successfully
+
+  /rubrics/events/{eventId}:
+    get:
+      summary: Get evaluation criteria rubrics for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Array of criteria rubrics (sum of weights = 100%)
+
+  /judge/scores:
+    get:
+      summary: Get assigned project scores for authenticated judge
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Assigned submissions and existing ratings
+        '403':
+          description: Forbidden if attempting to query peer judge scores
+
+  /judge/scores/peer:
+    get:
+      summary: Peer score access endpoint (Strictly forbidden for judges)
+      security:
+        - BearerAuth: []
+      responses:
+        '403':
+          description: Forbidden (Strict role isolation)
+
+  /voting/events/{eventId}/projects:
+    get:
+      summary: Get public project voting gallery (strictly title and description)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of project cards with title and description only
+
+  /voting/projects/{submissionId}/vote:
+    post:
+      summary: Cast strictly 1 community vote per user per event
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Vote recorded
+        '400':
+          description: Already voted or self-vote attempted
+
+  /certificates/events/{eventId}/generate:
+    post:
+      summary: Generate SVG certificates locally on disk with SHA-256 integrity hash
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Generation completed
+
+  /certificates/verify/{certificateNo}:
+    get:
+      summary: Verify certificate authenticity and integrity hash offline
+      parameters:
+        - name: certificateNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Certificate verification details and vector SVG preview
+
+  /organizer/events/{eventId}/certificates/toggle:
+    post:
+      summary: Toggle certificate display (Only allowed if certificates are generated)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Updated visibility state
+        '400':
+          description: Rejected if certificates have not been generated
+
+  /export/backup/full:
+    get:
+      summary: Export full database state as an atomic JSON snapshot
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: JSON database snapshot
+
+  /export/backup/restore:
+    post:
+      summary: Restore entire database atomically from JSON backup
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Database restored successfully
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

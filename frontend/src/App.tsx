@@ -17,6 +17,9 @@ import { ManageParticipants } from './pages/organizer/ManageParticipants';
 import { ManageResets } from './pages/organizer/ManageResets';
 import { ExportData } from './pages/organizer/ExportData';
 import { ManageSubmissions } from './pages/organizer/ManageSubmissions';
+import { ManageCertificates } from './pages/organizer/ManageCertificates';
+import { ManageTimeline } from './pages/organizer/ManageTimeline';
+import { ManageRubrics } from './pages/organizer/ManageRubrics';
 import { ParticipantLayout } from './components/ParticipantLayout';
 
 import { ForgotPassword } from './pages/auth/ForgotPassword';
@@ -26,12 +29,12 @@ import { JoinTeam } from './pages/participant/JoinTeam';
 import { TeamDetails } from './pages/participant/TeamDetails';
 import { Profile } from './pages/participant/Profile';
 import { Submission } from './pages/participant/Submission';
+import { Results } from './pages/participant/Results';
 
 import { JudgeDashboard } from './pages/judge/JudgeDashboard';
 import { HackathonDetails } from './pages/public/HackathonDetails';
+import { VerifyCertificate } from './pages/public/VerifyCertificate';
 import { SetupWizard } from './pages/auth/SetupWizard';
-
-import { Results } from './pages/participant/Results';
 
 function App() {
   return (
@@ -47,6 +50,11 @@ function App() {
           <Route path="/admin/change-password" element={<ChangePassword />} />
           <Route path="/invite/:token" element={<JudgeAcceptInvite />} />
 
+          {/* Public Certificate Verification Routes */}
+          <Route path="/verify/certificate/:id" element={<VerifyCertificate />} />
+          <Route path="/verify/certificate" element={<VerifyCertificate />} />
+          <Route path="/certificates/verify/:id" element={<VerifyCertificate />} />
+
           {/* Isolated Judge Route */}
           <Route element={<ProtectedRoute allowedRoles={['judge']} />}>
             <Route path="/judge" element={<JudgeDashboard />} />
@@ -55,10 +63,11 @@ function App() {
           {/* Isolated Admin Routes */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route element={<AdminLayout />}>
-              <Route path="/admin" element={<div><h1 className="text-3xl font-bold text-gray-900">Admin Dashboard Home</h1></div>} />
+              <Route path="/admin" element={<Navigate to="/admin/judges" replace />} />
               <Route path="/admin/judges" element={<ManageStaff role="judge" />} />
               <Route path="/admin/resets" element={<ManageResets />} />
               <Route path="/admin/submissions" element={<ManageSubmissions />} />
+              <Route path="/admin/certificates" element={<ManageCertificates />} />
             </Route>
           </Route>
 
@@ -75,13 +84,11 @@ function App() {
               <Route path="/participant/team/create" element={<CreateTeam />} />
               <Route path="/participant/team/join" element={<JoinTeam />} />
               <Route path="/participant/submission" element={<Submission />} />
-              <Route path="/participant/notifications" element={<div className="p-8 bg-bauhaus-card border-4 border-bauhaus-border">Notifications coming soon...</div>} />
-              <Route path="/participant/projects" element={<div className="p-8 bg-bauhaus-card border-4 border-bauhaus-border">Projects gallery coming soon...</div>} />
             </Route>
           </Route>
 
           {/* Isolated Organizer Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['organizer']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['organizer', 'admin']} />}>
             <Route element={<OrganizerLayout />}>
               <Route path="/organizer" element={<OrganizerDashboard />} />
               <Route path="/organizer/events" element={<ManageEvents />} />
@@ -93,11 +100,12 @@ function App() {
               <Route path="/organizer/participants" element={<ManageParticipants />} />
               <Route path="/organizer/submissions" element={<ManageSubmissions />} />
 
-              <Route path="/organizer/timeline" element={<div className="p-8"><h2 className="text-2xl font-bold mb-4">Event Timeline</h2><div className="bg-white p-6 rounded shadow border border-gray-200">Timeline features coming soon...</div></div>} />
-              <Route path="/organizer/tasks" element={<div className="p-8"><h2 className="text-2xl font-bold mb-4">Task Management</h2><div className="bg-white p-6 rounded shadow border border-gray-200">Task tracking coming soon...</div></div>} />
-              <Route path="/organizer/rubrics" element={<div className="p-8"><h2 className="text-2xl font-bold mb-4">Scoring Rubrics</h2><div className="bg-white p-6 rounded shadow border border-gray-200">Rubric editor coming soon...</div></div>} />
+              <Route path="/organizer/timeline" element={<ManageTimeline />} />
+              <Route path="/organizer/rubrics" element={<ManageRubrics />} />
+              <Route path="/organizer/certificates" element={<ManageCertificates />} />
               <Route path="/organizer/export" element={<ExportData />} />
-              <Route path="/organizer/settings" element={<div className="p-8"><h2 className="text-2xl font-bold mb-4">System Settings</h2><div className="bg-white p-6 rounded shadow border border-gray-200">Settings panel coming soon...</div></div>} />
+              <Route path="/organizer/tasks" element={<Navigate to="/organizer/timeline" replace />} />
+              <Route path="/organizer/settings" element={<Navigate to="/organizer/events" replace />} />
             </Route>
           </Route>
         </Routes>

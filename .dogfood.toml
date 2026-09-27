@@ -1,0 +1,31 @@
+[portal]
+base_url = "http://localhost:3000"
+api_base_url = "http://localhost:4000/api"
+
+[submission]
+claimed = ["T1", "T2", "T3", "T4"]
+offline_ready = true
+
+[endpoints]
+health = "/api/health"
+auth_login = "/api/auth/login"
+auth_signup = "/api/auth/register"
+auth_me = "/api/auth/me"
+events = "/api/events"
+public_events = "/api/public/events"
+submissions = "/api/submissions"
+rubrics = "/api/rubrics"
+judge_scores = "/api/judge/scores"
+voting = "/api/voting"
+certificates = "/api/certificates"
+export_backup = "/api/export/backup/full"
+restore_backup = "/api/export/backup/restore"
+
+[features]
+bauhaus_theme = true
+offline_first = true
+certificate_studio = true
+community_voting = true
+timeline_extensions = true
+rubric_customization = true
+role_isolation = true

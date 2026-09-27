@@ -76,7 +76,6 @@ export const CreateTeam = () => {
       });
 
       console.log('Team created:', res.data);
-      alert('Team created successfully!');
       navigate('/participant/team');
     } catch (err: any) {
       console.error('Create team failed:', err);
@@ -84,7 +83,7 @@ export const CreateTeam = () => {
       console.error('Body:', err.response?.data);
 
       if (err.response?.data?.requiresProfile) {
-        alert('You must complete your profile before creating a team.');
+        setError('You must complete your profile before creating a team.');
         navigate('/participant/profile');
       } else {
         setError(

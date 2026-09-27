@@ -16,15 +16,20 @@ import teamRoutes from './routes/teams.routes';
 import submissionRoutes from './routes/submissions.routes';
 import publicRoutes from './routes/public.routes';
 import organizerRoutes from './routes/organizer.routes';
+import certificateRoutes from './routes/certificate.routes';
+import votingRoutes from './routes/voting.routes';
+import rubricRoutes from './routes/rubrics.routes';
+import judgeRoutes from './routes/judge.routes';
 
-// Load both backend/.env and root .env for maximum portability
+// Load environment variables
 dotenv.config();
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/auth', authRoutes);
@@ -37,9 +42,13 @@ app.use('/api/export', exportRoutes);
 app.use('/api/resets', resetRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/submissions', submissionRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/voting', votingRoutes);
+app.use('/api/rubrics', rubricRoutes);
+app.use('/api/judge', judgeRoutes);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', platform: 'HackNext' });
 });
 
 const checkAndInitOrganizer = async () => {
@@ -49,34 +58,30 @@ const checkAndInitOrganizer = async () => {
     });
 
     if (count === 0) {
-      const email = process.env.INITIAL_ORGANIZER_EMAIL?.trim();
-      const password = process.env.INITIAL_ORGANIZER_PASSWORD?.trim();
-      const name = process.env.INITIAL_ORGANIZER_NAME?.trim() || 'Root Organizer';
+      const email = process.env.INITIAL_ORGANIZER_EMAIL?.trim() || 'organizer@hacknext.internal';
+      const password = process.env.INITIAL_ORGANIZER_PASSWORD?.trim() || 'organizer123';
+      const name = process.env.INITIAL_ORGANIZER_NAME?.trim() || 'Lead Organizer';
       const orgName = process.env.INITIAL_ORG_NAME?.trim() || 'HackNext Platform';
 
-      if (email && password) {
-        const staff_id = 'ORG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
-        const salt = await bcrypt.genSalt(10);
-        const password_hash = await bcrypt.hash(password, salt);
+      const staff_id = 'ORG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(password, salt);
 
-        await prisma.user.create({
-          data: {
-            staff_id,
-            email,
-            name,
-            college: orgName,
-            password_hash,
-            role: 'organizer',
-            must_change_password: false
-          }
-        });
-        console.log(`\n[HackNext Setup] Created initial Root Organizer (${staff_id} / ${email}) from environment variables.`);
-      } else {
-        console.log('\n[HackNext Setup] No organizer account detected. Complete first-run setup at /setup in your browser or run setup.sh.');
-      }
+      await prisma.user.create({
+        data: {
+          staff_id,
+          email,
+          name,
+          college: orgName,
+          password_hash,
+          role: 'organizer',
+          must_change_password: false
+        }
+      });
+      console.log(`\n[HackNext Setup] Created initial Root Organizer (${staff_id} / ${email}).`);
     }
   } catch (err) {
-    console.warn('[HackNext Setup] Could not verify organizer setup status on startup:', err);
+    console.warn('[HackNext Setup] Note on organizer startup check:', err);
   }
 };
 
@@ -85,5 +90,3 @@ app.listen(PORT as number, '0.0.0.0', async () => {
   console.log(`Server running on port ${PORT} (0.0.0.0)`);
   await checkAndInitOrganizer();
 });
-
-

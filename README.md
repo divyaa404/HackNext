@@ -1,103 +1,82 @@
-# HackNext Platform
+# HackNext — Offline-First Collegiate Hackathon Management Platform
 
-A portable, self-hostable hackathon management, submission, and multi-dimensional judging platform. Built to run on **ANY machine with zero manual configuration or hardcoded credentials.**
+[![Offline First](https://img.shields.io/badge/Architecture-Offline--First-blue.svg)](#)
+[![Theme](https://img.shields.io/badge/UI-Bauhaus%20Neo--Brutalist-red.svg)](#)
+[![Dogfood](https://img.shields.io/badge/Dogfood%202026-T1--T4%20Claimed-success.svg)](#)
+
+A self-hostable, offline-first hackathon lifecycle platform engineered for collegiate hackathons, high-stakes engineering sprints, and air-gapped campus environments. Built with zero external SaaS or cloud CDN dependencies.
 
 ---
 
-## 🚀 Quick Start for a New Machine
+## 🏛️ System Features
 
-Clone the repository and launch the platform in two commands:
+1. **Certificate Generation Studio (Vector SVG Engine)**
+   - Modeled after parametric vector engines (`Certify`), rendering offline SVGs with mathematically scaled typography and layout.
+   - Built-in templates: 1st Place, 2nd Place, 3rd Place, Participant, and custom track certificates.
+   - Cryptographic SHA-256 integrity hash embedded into each certificate for offline public verification (`/verify/certificate/:id`).
+   - Event toggle safety: `show_certificates` can only be turned on if certificates have already been generated.
 
-### Linux / macOS / WSL:
+2. **Community Project Voting & Results Podium**
+   - Public project voting gallery displaying strictly **Project Title and Description**.
+   - Strict 1-vote constraint per participant per event (no self-voting).
+   - Real-time vote locking and automated rank sorting upon phase conclusion.
+   - Interactive podium and leaderboard reveal on the main event page when results are published.
+
+3. **5-Phase Event Lifecycle & Timeline Operations**
+   - Predefined 5-step operational pipeline: `Registration` → `Project Submission` → `Evaluation` → `Community Voting` → `Result Out`.
+   - Dynamic **`+1 Hour` Extension** and **`Close Phase Now`** controls for organizers.
+
+4. **Multi-Criteria Scoring Rubrics & Judging**
+   - Preloaded default 4-rubric criteria (Innovation 25%, Technical 30%, UI/UX 25%, Impact 20%).
+   - Weighted score calculation with instant validation guaranteeing 100% total weight.
+   - Adaptive judging with Z-Score normalization and strict role isolation (Judge B cannot view Judge A's evaluations).
+
+5. **Full Server Backup & Atomic Restore**
+   - Full JSON snapshot export (`/api/export/backup/full`) and atomic transactional restore (`/api/export/backup/restore`).
+   - Detailed CSV export for evaluation scores and participant rosters.
+
+6. **Bauhaus Neo-Brutalist Design System**
+   - 4px solid borders, brutalist shadow geometry (`8px 8px 0px #000`), high contrast, dark mode support, and custom modal components (`UIModal.tsx`) with zero native `alert()` interruptions.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Requirements
+- Node.js v20+ / npm
+- PostgreSQL (or Docker Compose)
+- Python 3.8+ (for acceptance test suite)
+
+### 2. Local Setup
 ```bash
-git clone https://github.com/indresh404/HackNext.git
-cd HackNext
-./setup.sh
-docker compose up
+# Backend Setup
+cd backend
+npm install
+npx prisma generate
+npx prisma db push
+npm run dev
+
+# Frontend Setup (in a separate terminal)
+cd ../frontend
+npm install
+npm run dev
 ```
 
-### Windows (PowerShell):
-```powershell
-git clone https://github.com/indresh404/HackNext.git
-cd HackNext
-.\setup.ps1
-docker compose up
+### 3. Acceptance Test Suite Verification
+Run the automated Dogfood 2026 T1-T4 verification suite:
+```bash
+python run.py
 ```
+This executes all 10 checks across T1 (Core), T2 (Judging & Security), T3 (Voting & Certificates), and T4 (Portability) and generates `docs/acceptance-report.txt`.
 
 ---
 
-## 🔑 First-Run Root Organizer Setup
+## 📁 Technical Documentation
 
-No default or hardcoded admin/organizer passwords exist in this codebase. Whoever clones and deploys the platform creates their own master account:
-
-### Option A: Interactive Terminal Setup (Default)
-When you run `./setup.sh` or `.\setup.ps1`, the script prompts you to create your Root Organizer account (or auto-generates secure credentials if you press Enter).
-
-### Option B: Browser Setup Wizard (`/setup`)
-If you start Docker directly without running the setup script, open your browser at:
-👉 **`http://localhost:3000/setup`**
-
-The one-time Setup Wizard lets you:
-1. Enter your Organizer Name, Email, and Organization.
-2. 1-click auto-generate a secure master password.
-3. Automatically initialize the database and log directly into the Organizer Dashboard.
-*(Note: Once the first Organizer is created, the `/setup` endpoint is locked permanently and returns `403 Forbidden`)*.
-
----
-
-## 🛠️ Portable Configuration & Environment Variables
-
-All configuration is loaded via `.env` (derived from `.env.example`). No hardcoded ports or secret strings exist in the source code.
-
-| Environment Variable | Description | Default |
-| :--- | :--- | :--- |
-| `DB_USER` | PostgreSQL user | `hacknext` |
-| `DB_PASSWORD` | PostgreSQL password | Auto-generated / `hacknextpassword` |
-| `DB_NAME` | PostgreSQL database name | `hacknext` |
-| `DB_PORT` | PostgreSQL host exposed port | `5432` |
-| `BACKEND_PORT` | Express API server port | `4000` |
-| `FRONTEND_PORT` | Vite React frontend port | `3000` |
-| `JWT_SECRET` | Cryptographic secret for session tokens | Auto-generated random hex |
-| `DATABASE_URL` | Complete Prisma connection string | `postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}` |
-
-To resolve any local port conflicts, simply modify the ports in your `.env` file before starting.
-
----
-
-## 💻 Local Development (Without Docker)
-
-If you prefer running services directly on your host machine:
-
-1. **Configure Environment**:
-   ```bash
-   ./setup.sh    # (or .\setup.ps1)
-   ```
-
-2. **Start Backend**:
-   ```bash
-   cd backend
-   npm install
-   npx prisma db push
-   npm run dev
-   ```
-
-3. **Start Frontend** (in a separate terminal):
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-4. **Access Portals**:
-   - **Participant & Public Portal:** `http://localhost:3000/`
-   - **First-Run Setup Wizard:** `http://localhost:3000/setup`
-   - **Admin / Judge / Staff Login:** `http://localhost:3000/admin/login`
-   - **Judge Dashboard:** `http://localhost:3000/judge`
-
----
-
-## 📚 Technical Documentation
-- [Architecture](docs/ARCHITECTURE.md)
-- [Data Model & Schema](docs/DATA-MODEL.md)
-- [Judging Mechanics](docs/JUDGING.md)
-- [Threat Model & Security](docs/THREAT-MODEL.md)
+- [Architecture & Subsystems](docs/ARCHITECTURE.md)
+- [Relational Data Model](docs/DATA-MODEL.md)
+- [Adaptive Dynamic Judging & Normalization](docs/JUDGING.md)
+- [Threat Model & Security Mitigations](docs/THREAT-MODEL.md)
+- [Mathematical Normalization Proof](docs/NORMALIZATION-PROOF.md)
+- [REST API Specification (OpenAPI 3.0)](openapi.yaml)
+- [Dogfood Specification Config](.dogfood.toml)

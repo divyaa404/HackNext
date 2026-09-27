@@ -83,13 +83,10 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
       loadStaff();
     } catch (err: any) {
       console.error('Failed to create staff/judge:', err);
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to generate account';
-      alert(msg);
     }
   };
 
   const handleReset = async (userToReset: any) => {
-    if (!confirm(`Are you sure you want to reset credentials for ${userToReset.name || userToReset.staff_id}? This will generate a new passkey.`)) return;
     try {
       const res = await axios.post(`/api/users/${userToReset.id}/reset`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -103,13 +100,10 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
       loadStaff();
     } catch (err: any) {
       console.error('Failed to reset account:', err);
-      const msg = err.response?.data?.error || err.message || 'Failed to reset account';
-      alert(msg);
     }
   };
 
   const handleDelete = async (userToDelete: any) => {
-    if (!confirm(`Are you sure you want to delete ${role} "${userToDelete.name || userToDelete.staff_id}"? This action cannot be undone.`)) return;
     try {
       await axios.delete(`/api/users/${userToDelete.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -117,8 +111,6 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
       loadStaff();
     } catch (err: any) {
       console.error('Failed to delete user:', err);
-      const msg = err.response?.data?.error || err.message || `Failed to delete ${role}`;
-      alert(msg);
     }
   };
 
@@ -209,7 +201,7 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
       setIsEditing(false);
       loadStaff();
     } catch (err) {
-      alert('Failed to save changes');
+      console.error('Failed to save changes');
     } finally {
       setSaving(false);
     }

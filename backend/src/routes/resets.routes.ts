@@ -7,7 +7,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all password reset requests
-router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'organizer'), async (req, res) => {
   try {
     const requests = await prisma.passwordResetRequest.findMany({
       include: {
@@ -23,7 +23,7 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // Generate a passkey for a specific request
-router.post('/:id/generate', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/:id/generate', requireAuth, requireRole('admin', 'organizer'), async (req, res) => {
   try {
     const { id } = req.params;
     const adminId = (req as any).user.id;
@@ -61,7 +61,7 @@ router.post('/:id/generate', requireAuth, requireRole('admin'), async (req, res)
 });
 
 // Cancel a request
-router.post('/:id/cancel', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/:id/cancel', requireAuth, requireRole('admin', 'organizer'), async (req, res) => {
   try {
     const { id } = req.params;
     

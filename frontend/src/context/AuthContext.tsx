@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (error: any) {
           console.error("Failed to fetch user", error);
           if (error.response?.data?.error === 'SESSION_INVALIDATED') {
-            alert('Your session has expired because a new login was detected on another device.');
+            console.warn('Your session has expired because a new login was detected on another device.');
           }
           logout();
         }

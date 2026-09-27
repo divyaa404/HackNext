@@ -18,7 +18,6 @@ import {
   Maximize2,
   RefreshCw,
   CheckCircle2,
-  Clock,
   Sparkles,
   Layers,
   ChevronRight,
@@ -100,7 +99,6 @@ export const JudgeDashboard = () => {
   const [scoreSuccessMessage, setScoreSuccessMessage] = useState<string | null>(null);
   const [submittedModalData, setSubmittedModalData] = useState<SubmittedConfirmationData | null>(null);
   const [isDeckExpanded, setIsDeckExpanded] = useState(false);
-  const [deckSize, setDeckSize] = useState<'standard' | 'large'>('large');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [pdfFitMode, setPdfFitMode] = useState<'Fit' | 'FitH' | 'FitV'>('Fit');
 
@@ -291,7 +289,7 @@ export const JudgeDashboard = () => {
       if (current) setSelectedSub(current);
 
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to submit evaluation scores');
+      setScoreSuccessMessage(err.response?.data?.error || 'Failed to submit evaluation scores');
       setIsTimerRunning(true); // Resume timer if failed
     } finally {
       setSubmittingScore(false);
@@ -321,7 +319,7 @@ export const JudgeDashboard = () => {
   };
 
   const handleExportMarks = () => {
-    alert("Export marks feature: Evaluation summary sheet will be compiled and exported.");
+    window.open('/api/export/score', '_blank');
   };
 
   const judgeName = (user as any)?.name || user?.staff_id || user?.email?.split('@')[0] || 'Judge';

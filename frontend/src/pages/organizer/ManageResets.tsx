@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Copy, Check, Key, XCircle, ShieldAlert, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Copy, Check, Key, XCircle, ShieldAlert, Clock } from 'lucide-react';
+import { UIModal } from '../../components/UIModal';
 
 export const ManageResets = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [passkeyModal, setPasskeyModal] = useState<{passkey: string, expiresAt: string, userName?: string} | null>(null);
   const [copied, setCopied] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -37,19 +39,18 @@ export const ManageResets = () => {
       });
       loadRequests();
     } catch (err) {
-      alert('Failed to generate passkey');
+      setErrorMsg('Failed to generate reset passkey. Please try again.');
     }
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Cancel this reset request?')) return;
     try {
       await axios.post(`/api/resets/${id}/cancel`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       loadRequests();
     } catch (err) {
-      alert('Failed to cancel request');
+      console.error('Failed to cancel request', err);
     }
   };
 
@@ -216,6 +217,23 @@ export const ManageResets = () => {
           </div>
         </div>
       )}
+
+      <UIModal
+        isOpen={!!errorMsg}
+        title="Operation Failed"
+        type="error"
+        onClose={() => setErrorMsg(null)}
+      >
+        <div className="space-y-4">
+          <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{errorMsg}</p>
+          <button
+            onClick={() => setErrorMsg(null)}
+            className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs border-2 border-black tracking-wider transition shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+          >
+            Acknowledge
+          </button>
+        </div>
+      </UIModal>
     </div>
   );
 };

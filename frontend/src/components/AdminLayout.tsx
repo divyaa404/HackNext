@@ -146,9 +146,10 @@ export const AdminLayout = () => {
           {/* User Access Group */}
           <div className="space-y-1">
             <div className="px-3 text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5">
-              Staff & Judges
+              Staff & Operations
             </div>
             <NavItem to="/admin/judges" icon={Gavel} label="Manage Judges" />
+            <NavItem to="/admin/certificates" icon={ShieldCheck} label="Certificate Studio" />
           </div>
 
           {/* Security Group */}

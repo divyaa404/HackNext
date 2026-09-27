@@ -25,8 +25,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Use organizer auth
-router.use(requireAuth, requireRole('organizer'));
+// Use organizer/admin auth
+router.use(requireAuth, requireRole('organizer', 'admin'));
 
 // Upload image endpoint
 router.post('/upload', upload.single('image'), (req, res) => {
@@ -34,7 +34,6 @@ router.post('/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    // Return a relative URL
     const fileUrl = `/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
   } catch (error) {
@@ -49,10 +48,24 @@ router.patch('/events/:id', async (req, res) => {
     const eventId = req.params.id;
     const updateData = { ...req.body };
     
-    // Validate ownership
+    // Validate ownership or admin role
     const event = await prisma.event.findUnique({ where: { id: eventId } });
-    if (!event || event.created_by !== (req as any).user.id) {
+    const user = (req as any).user;
+    if (!event || (event.created_by !== user.id && user.role !== 'admin' && user.role !== 'organizer')) {
       return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Check certificate toggle requirement: only allow show_certificates: true if certificates exist
+    if (updateData.show_certificates === true || updateData.show_certificates === 'true') {
+      const certCount = await prisma.certificate.count({ where: { event_id: eventId } });
+      if (certCount === 0) {
+        return res.status(400).json({
+          error: 'Cannot enable certificate visibility yet. Please generate certificates for this event first in the Certificate Studio.'
+        });
+      }
+      updateData.show_certificates = true;
+    } else if (updateData.show_certificates !== undefined) {
+      updateData.show_certificates = Boolean(updateData.show_certificates);
     }
 
     // Convert date strings to Date objects if provided
@@ -74,61 +87,59 @@ router.patch('/events/:id', async (req, res) => {
       data: updateData
     });
     res.json(updated);
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
 // Bulk update content (eligibility, rules, prizes, timeline, contacts)
-// To keep things simple, we'll replace the existing items with the new ones.
 router.put('/events/:id/content/:type', async (req, res) => {
   try {
     const eventId = req.params.id;
-    const type = req.params.type; // 'rules', 'prizes', etc.
-    const items = req.body.items; // array of items
+    const type = req.params.type;
+    const items = req.body.items || [];
 
     const event = await prisma.event.findUnique({ where: { id: eventId } });
-    if (!event || event.created_by !== (req as any).user.id) {
-      return res.status(403).json({ error: 'Forbidden' });
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
     }
 
-    // Use a transaction to delete old and insert new
     await prisma.$transaction(async (tx) => {
       if (type === 'rules') {
         await tx.rule.deleteMany({ where: { event_id: eventId } });
         if (items.length) {
-            await tx.rule.createMany({ data: items.map((i: any) => ({ ...i, event_id: eventId, id: undefined })) });
+          await tx.rule.createMany({ data: items.map((i: any, idx: number) => ({ ...i, sort_order: idx + 1, event_id: eventId, id: undefined })) });
         }
       } else if (type === 'eligibility') {
         await tx.eligibilityItem.deleteMany({ where: { event_id: eventId } });
         if (items.length) {
-            await tx.eligibilityItem.createMany({ data: items.map((i: any) => ({ ...i, event_id: eventId, id: undefined })) });
+          await tx.eligibilityItem.createMany({ data: items.map((i: any, idx: number) => ({ ...i, sort_order: idx + 1, event_id: eventId, id: undefined })) });
         }
       } else if (type === 'prizes') {
         await tx.prize.deleteMany({ where: { event_id: eventId } });
         if (items.length) {
-            await tx.prize.createMany({ data: items.map((i: any) => ({ ...i, event_id: eventId, id: undefined })) });
+          await tx.prize.createMany({ data: items.map((i: any, idx: number) => ({ ...i, sort_order: idx + 1, event_id: eventId, id: undefined })) });
         }
       } else if (type === 'timeline') {
         await tx.timelineItem.deleteMany({ where: { event_id: eventId } });
         if (items.length) {
-            await tx.timelineItem.createMany({ 
-              data: items.map((i: any) => ({ 
-                title: i.title,
-                description: i.description || null,
-                start_datetime: new Date(i.start_datetime),
-                end_datetime: i.end_datetime ? new Date(i.end_datetime) : null,
-                status: i.status || null,
-                sort_order: i.sort_order || 1,
-                event_id: eventId 
-              })) 
-            });
+          await tx.timelineItem.createMany({ 
+            data: items.map((i: any, idx: number) => ({ 
+              title: i.title,
+              description: i.description || null,
+              start_datetime: new Date(i.start_datetime),
+              end_datetime: i.end_datetime ? new Date(i.end_datetime) : null,
+              status: i.status || null,
+              sort_order: idx + 1,
+              event_id: eventId 
+            })) 
+          });
         }
       } else if (type === 'contacts') {
         await tx.adminContact.deleteMany({ where: { event_id: eventId } });
         if (items.length) {
-            await tx.adminContact.createMany({ data: items.map((i: any) => ({ ...i, event_id: eventId, id: undefined })) });
+          await tx.adminContact.createMany({ data: items.map((i: any, idx: number) => ({ ...i, sort_order: idx + 1, event_id: eventId, id: undefined })) });
         }
       } else {
         throw new Error('Invalid content type');
@@ -142,23 +153,185 @@ router.put('/events/:id/content/:type', async (req, res) => {
   }
 });
 
+// Predefined 5-step timeline generator: Registration -> Project Submission -> Evaluation -> Community Voting -> Result Out
+router.post('/events/:id/timeline/init-default', async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    const start = new Date(event.start_date || Date.now());
+    const regEnd = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    const subEnd = new Date(start.getTime() + 48 * 60 * 60 * 1000);
+    const evalEnd = new Date(start.getTime() + 60 * 60 * 60 * 1000);
+    const voteEnd = new Date(start.getTime() + 68 * 60 * 60 * 1000);
+    const resultEnd = new Date(start.getTime() + 72 * 60 * 60 * 1000);
+
+    const defaultTimeline = [
+      {
+        title: 'Registration',
+        description: 'Team formation, participant onboarding, and problem statement release.',
+        start_datetime: start,
+        end_datetime: subEnd,
+        sort_order: 1
+      },
+      {
+        title: 'Project Submission',
+        description: 'Repository commit freeze, project deck, and video demo submission.',
+        start_datetime: start,
+        end_datetime: subEnd,
+        sort_order: 2
+      },
+      {
+        title: 'Evaluation',
+        description: 'Jury score evaluations across weighted multi-factor rubrics.',
+        start_datetime: subEnd,
+        end_datetime: evalEnd,
+        sort_order: 3
+      },
+      {
+        title: 'Community Voting',
+        description: 'Public and participant community voting on submitted project gallery.',
+        start_datetime: evalEnd,
+        end_datetime: voteEnd,
+        sort_order: 4
+      },
+      {
+        title: 'Result Out',
+        description: 'Official leaderboard reveal, podium ranking, and winner ceremony.',
+        start_datetime: voteEnd,
+        end_datetime: resultEnd,
+        sort_order: 5
+      }
+    ];
+
+    await prisma.timelineItem.deleteMany({ where: { event_id: eventId } });
+    await prisma.timelineItem.createMany({
+      data: defaultTimeline.map(it => ({ ...it, event_id: eventId }))
+    });
+
+    res.json({ message: 'Predefined 5-step timeline initialized successfully.', timeline: defaultTimeline });
+  } catch (err) {
+    console.error('Init timeline error:', err);
+    res.status(500).json({ error: 'Failed to initialize default timeline' });
+  }
+});
+
+// Extend active or targeted timeline item by +1 hour
+router.post('/events/:id/timeline/extend-hour', async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const { itemId } = req.body;
+
+    let targetItem = null;
+    if (itemId) {
+      targetItem = await prisma.timelineItem.findUnique({ where: { id: itemId } });
+    } else {
+      // Find currently active item or last item
+      const now = new Date();
+      const items = await prisma.timelineItem.findMany({
+        where: { event_id: eventId },
+        orderBy: { sort_order: 'asc' }
+      });
+      targetItem = items.find(it => it.end_datetime && new Date(it.end_datetime) > now) || items[items.length - 1];
+    }
+
+    if (!targetItem) {
+      return res.status(404).json({ error: 'No timeline round found to extend' });
+    }
+
+    const currentEnd = targetItem.end_datetime ? new Date(targetItem.end_datetime) : new Date();
+    const newEnd = new Date(currentEnd.getTime() + 60 * 60 * 1000); // +1 hour (3600000 ms)
+
+    const updated = await prisma.timelineItem.update({
+      where: { id: targetItem.id },
+      data: { end_datetime: newEnd }
+    });
+
+    res.json({
+      message: `Successfully extended "${targetItem.title}" by +1 hour until ${newEnd.toLocaleTimeString()}`,
+      updatedItem: updated
+    });
+  } catch (err) {
+    console.error('Extend timeline error:', err);
+    res.status(500).json({ error: 'Failed to extend timeline' });
+  }
+});
+
+router.post('/events/:id/timeline/:itemId/extend', async (req, res) => {
+  try {
+    const { id, itemId } = req.params;
+    const hours = Number(req.body.hours) || 1;
+    const targetItem = await prisma.timelineItem.findUnique({ where: { id: itemId } });
+    if (!targetItem) {
+      return res.status(404).json({ error: 'Timeline round not found' });
+    }
+    const currentEnd = targetItem.end_datetime ? new Date(targetItem.end_datetime) : new Date();
+    const newEnd = new Date(currentEnd.getTime() + hours * 60 * 60 * 1000);
+    const updated = await prisma.timelineItem.update({
+      where: { id: itemId },
+      data: { end_datetime: newEnd }
+    });
+    res.json({ message: `Successfully extended "${targetItem.title}" by +${hours} hour(s)`, updatedItem: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to extend timeline' });
+  }
+});
+
+// Close active phase immediately
+router.post('/events/:id/timeline/close-phase', async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const { itemId } = req.body;
+
+    let targetItem = null;
+    if (itemId) {
+      targetItem = await prisma.timelineItem.findUnique({ where: { id: itemId } });
+    } else {
+      const now = new Date();
+      const items = await prisma.timelineItem.findMany({
+        where: { event_id: eventId },
+        orderBy: { sort_order: 'asc' }
+      });
+      targetItem = items.find(it => !it.end_datetime || new Date(it.end_datetime) > now);
+    }
+
+    if (!targetItem) {
+      return res.status(404).json({ error: 'No active phase found to close' });
+    }
+
+    const now = new Date();
+    const updated = await prisma.timelineItem.update({
+      where: { id: targetItem.id },
+      data: { end_datetime: now }
+    });
+
+    res.json({
+      message: `Successfully closed "${targetItem.title}" phase immediately.`,
+      updatedItem: updated
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to close timeline phase' });
+  }
+});
+
 // Update judge profile
 router.patch('/judges/:id', async (req, res) => {
-    try {
-        const judgeId = req.params.id;
-        const judge = await prisma.judge.findUnique({ where: { id: judgeId }, include: { event: true } });
-        if (!judge || judge.event.created_by !== (req as any).user.id) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-        const updated = await prisma.judge.update({
-            where: { id: judgeId },
-            data: req.body
-        });
-        res.json(updated);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+  try {
+    const judgeId = req.params.id;
+    const judge = await prisma.judge.findUnique({ where: { id: judgeId }, include: { event: true } });
+    if (!judge) {
+      return res.status(404).json({ error: 'Judge not found' });
     }
+    const updated = await prisma.judge.update({
+      where: { id: judgeId },
+      data: req.body
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Get existing admins
@@ -185,7 +358,6 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
       eventId = latestEvent.id;
     }
 
-    // Fetch submissions with teams and scores
     const submissions = await prisma.submission.findMany({
       where: { event_id: eventId },
       include: {
@@ -200,7 +372,6 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
       }
     });
 
-    // Group raw scores by judge to compute per-judge mean (μ) and standard deviation (σ)
     const judgeScoresMap: Record<string, { judgeName: string; rawScores: number[] }> = {};
 
     submissions.forEach(sub => {
@@ -214,7 +385,6 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
       });
     });
 
-    // Calculate mu and sigma per judge
     const judgeStats: Record<string, { judgeName: string; mu: number; sigma: number; count: number }> = {};
     Object.keys(judgeScoresMap).forEach(jId => {
       const { judgeName, rawScores } = judgeScoresMap[jId];
@@ -227,7 +397,6 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
       judgeStats[jId] = { judgeName, mu, sigma, count };
     });
 
-    // Compute Z-Scores and Normalized Scores for each submission
     const globalTargetMean = 65;
     const globalTargetStd = 15;
 
@@ -250,7 +419,6 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
           zScore = (s.raw_score - stats.mu) / stats.sigma;
           normalizedScore = Math.min(100, Math.max(0, (zScore * globalTargetStd) + globalTargetMean));
         } else if (stats) {
-          // Fallback when std dev is 0 (identical scores or single review)
           normalizedScore = Math.min(100, Math.max(0, (s.raw_score + (globalTargetMean - stats.mu)) * 10));
         }
 
@@ -279,7 +447,6 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
       };
     });
 
-    // Rank submissions descending by normalizedScore
     proofResults.sort((a, b) => b.normalizedScore - a.normalizedScore);
 
     res.json({
@@ -299,4 +466,3 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
 });
 
 export default router;
-

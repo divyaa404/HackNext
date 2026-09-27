@@ -72,7 +72,7 @@ export const TeamDetails = () => {
       });
       fetchTeamAndRequests();
     } catch (err: any) {
-      alert(err.response?.data?.error || `Failed to ${action}`);
+      console.error(err.response?.data?.error || `Failed to ${action}`);
     }
   };
 

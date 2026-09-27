@@ -39,14 +39,13 @@ export const ManageSubmissions = () => {
       setProofData(res.data);
     } catch (err) {
       console.error('Failed to load normalization proof', err);
-      alert('Failed to load normalization proof');
+      setAssignMessage('Failed to load normalization proof');
     } finally {
       setLoadingProof(false);
     }
   };
 
   const handleEqualAssign = async () => {
-    if (!confirm('Divide all project submissions equally among all registered judges?')) return;
     setAssigning(true);
     setAssignMessage(null);
 
@@ -57,7 +56,7 @@ export const ManageSubmissions = () => {
       setAssignMessage(res.data.message || 'Submissions equally divided among judges!');
       loadSubmissions();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to assign submissions');
+      setAssignMessage(err.response?.data?.error || 'Failed to assign submissions');
     } finally {
       setAssigning(false);
     }

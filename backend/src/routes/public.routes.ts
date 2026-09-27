@@ -25,8 +25,6 @@ router.get('/:slug/public', async (req, res) => {
     });
 
     if (!event) {
-      // Fallback: If not found by slug, just return the latest event in the database
-      // This ensures the landing page always works for a single-hackathon setup
       event = await prisma.event.findFirst({
         orderBy: { start_date: 'desc' },
         include: {
@@ -49,7 +47,6 @@ router.get('/:slug/public', async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    // Filter out sections based on visibility toggles
     const publicData = {
       id: event.id,
       slug: event.slug,
@@ -77,6 +74,9 @@ router.get('/:slug/public', async (req, res) => {
       show_prizes: event.show_prizes,
       show_timeline: event.show_timeline,
       show_contacts: event.show_contacts,
+      show_certificates: event.show_certificates,
+      show_public_voting: event.show_public_voting,
+      community_voting_open: event.community_voting_open,
 
       eligibility_items: event.show_eligibility ? event.eligibility_items : [],
       rules: event.show_rules ? event.rules : [],
@@ -95,49 +95,22 @@ router.get('/:slug/public', async (req, res) => {
   }
 });
 
-// Get public judges
-router.get('/:slug/public/judges', async (req, res) => {
-  try {
-    const event = await prisma.event.findUnique({
-      where: { slug: req.params.slug },
-      select: { id: true, show_public_judges: true }
-    });
-
-    if (!event) return res.status(404).json({ error: 'Event not found' });
-    if (!event.show_public_judges) return res.json([]);
-
-    const judges = await prisma.judge.findMany({
-      where: { 
-        event_id: event.id,
-        show_publicly: true
-      },
-      orderBy: { sort_order: 'asc' },
-      select: {
-        id: true,
-        display_name: true,
-        photo_url: true,
-        designation: true,
-        company: true,
-        bio: true,
-        linkedin_url: true
-      }
-    });
-    res.json(judges);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Get public teams
 router.get('/:slug/public/teams', async (req, res) => {
   try {
-    const event = await prisma.event.findUnique({
+    let event = await prisma.event.findUnique({
       where: { slug: req.params.slug },
       select: { id: true, show_public_teams: true }
     });
 
+    if (!event) {
+      event = await prisma.event.findFirst({
+        orderBy: { start_date: 'desc' },
+        select: { id: true, show_public_teams: true }
+      });
+    }
+
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    if (!event.show_public_teams) return res.json([]);
 
     const teams = await prisma.team.findMany({
       where: { event_id: event.id },
@@ -153,23 +126,22 @@ router.get('/:slug/public/teams', async (req, res) => {
   }
 });
 
-// Get public projects
+// Get public projects (Clean list of project title and description only)
 router.get('/:slug/public/projects', async (req, res) => {
   try {
     let event = await prisma.event.findUnique({
       where: { slug: req.params.slug },
-      select: { id: true, show_public_projects: true }
+      select: { id: true, show_public_projects: true, name: true }
     });
 
     if (!event) {
       event = await prisma.event.findFirst({
         orderBy: { start_date: 'desc' },
-        select: { id: true, show_public_projects: true }
+        select: { id: true, show_public_projects: true, name: true }
       });
     }
 
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    if (!event.show_public_projects) return res.json([]);
 
     const projects = await prisma.submission.findMany({
       where: { event_id: event.id, status: 'submitted' },
@@ -177,9 +149,10 @@ router.get('/:slug/public/projects', async (req, res) => {
         id: true,
         title: true,
         description: true,
-        team: { select: { name: true } }
+        team: { select: { id: true, name: true } }
       }
     });
+
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -202,7 +175,6 @@ router.get('/:slug/public/results', async (req, res) => {
     }
 
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    if (!event.show_public_results) return res.status(403).json({ error: 'Results are not published yet' });
 
     const submissions = await prisma.submission.findMany({
       where: { event_id: event.id, status: 'submitted' },

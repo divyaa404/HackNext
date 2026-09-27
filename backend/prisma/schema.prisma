@@ -8,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(uuid())
-  email          String?        @unique
-  staff_id       String?        @unique
-  name           String?
-  designation    String?
-  password_hash  String
-  role           String         @default("participant") // participant, judge, admin, organizer
-  must_change_password Boolean  @default(false)
+  id                   String         @id @default(uuid())
+  email                String?        @unique
+  staff_id             String?        @unique
+  name                 String?
+  designation          String?
+  password_hash        String
+  role                 String         @default("participant") // participant, judge, admin, organizer
+  must_change_password Boolean        @default(false)
   temp_pass_key        String?
   current_session_id   String?
 
@@ -33,60 +33,69 @@ model User {
   instagram_url        String?
   portfolio_url        String?
 
-  created_at     DateTime       @default(now())
-  events         Event[]        @relation("EventCreator")
-  teamMembers    TeamMember[]
-  judges         Judge[]
-  resetRequests  PasswordResetRequest[]
-  joinRequests   JoinRequest[]
+  created_at           DateTime       @default(now())
+  events               Event[]        @relation("EventCreator")
+  teamMembers          TeamMember[]
+  judges               Judge[]
+  resetRequests        PasswordResetRequest[]
+  joinRequests         JoinRequest[]
+  certificates         Certificate[]
+  votes                Vote[]
 }
 
 model Event {
-  id             String         @id @default(uuid())
-  slug           String?        @unique
-  name           String
-  short_description String?
-  full_description  String?
-  category       String?
-  mode           String?
-  location       String?
-  team_size_min  Int?           @default(1)
-  team_size_max  Int?           @default(4)
-  prize_pool     String?
-  organizer_name String?
-  organizer_logo String?
-  banner_url     String?
+  id                   String         @id @default(uuid())
+  slug                 String?        @unique
+  name                 String
+  short_description    String?
+  full_description     String?
+  category             String?
+  mode                 String?
+  location             String?
+  team_size_min        Int?           @default(1)
+  team_size_max        Int?           @default(4)
+  prize_pool           String?
+  organizer_name       String?
+  organizer_logo       String?
+  banner_url           String?
 
-  show_public_teams    Boolean @default(false)
-  show_public_projects Boolean @default(false)
-  show_public_judges   Boolean @default(false)
-  show_public_results  Boolean @default(false)
-  show_prizes          Boolean @default(false)
-  show_eligibility     Boolean @default(false)
-  show_rules           Boolean @default(false)
-  show_timeline        Boolean @default(false)
-  show_contacts        Boolean @default(false)
+  show_public_teams    Boolean        @default(false)
+  show_public_projects Boolean        @default(false)
+  show_public_judges   Boolean        @default(false)
+  show_public_results  Boolean        @default(false)
+  show_prizes          Boolean        @default(false)
+  show_eligibility     Boolean        @default(false)
+  show_rules           Boolean        @default(false)
+  show_timeline        Boolean        @default(false)
+  show_contacts        Boolean        @default(false)
+  show_certificates    Boolean        @default(false)
+  show_public_voting   Boolean        @default(false)
+  community_voting_open Boolean       @default(false)
 
-  start_date     DateTime
-  end_date       DateTime
-  tracks         Json
-  prizes_config  Json
-  created_by     String
-  creator        User           @relation("EventCreator", fields: [created_by], references: [id])
-  teams          Team[]
-  submissions    Submission[]
-  judges         Judge[]
-  eligibility_items EligibilityItem[]
-  rules             Rule[]
-  prizes            Prize[]
-  timeline_items    TimelineItem[]
-  admin_contacts    AdminContact[]
+  start_date           DateTime
+  end_date             DateTime
+  tracks               Json
+  prizes_config        Json
+  created_by           String
+  creator              User           @relation("EventCreator", fields: [created_by], references: [id])
+  teams                Team[]
+  submissions          Submission[]
+  judges               Judge[]
+  eligibility_items    EligibilityItem[]
+  rules                Rule[]
+  prizes               Prize[]
+  timeline_items       TimelineItem[]
+  admin_contacts       AdminContact[]
+  rubrics              Rubric[]
+  certificates         Certificate[]
+  certificate_templates CertificateTemplate[]
+  votes                Vote[]
 }
 
 model EligibilityItem {
   id          String  @id @default(uuid())
   event_id    String
-  event       Event   @relation(fields: [event_id], references: [id])
+  event       Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
   title       String
   description String?
   sort_order  Int     @default(0)
@@ -95,7 +104,7 @@ model EligibilityItem {
 model Rule {
   id          String  @id @default(uuid())
   event_id    String
-  event       Event   @relation(fields: [event_id], references: [id])
+  event       Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
   title       String
   description String?
   sort_order  Int     @default(0)
@@ -104,7 +113,7 @@ model Rule {
 model Prize {
   id          String  @id @default(uuid())
   event_id    String
-  event       Event   @relation(fields: [event_id], references: [id])
+  event       Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
   position    String?
   title       String
   amount      String?
@@ -116,7 +125,7 @@ model Prize {
 model TimelineItem {
   id             String    @id @default(uuid())
   event_id       String
-  event          Event     @relation(fields: [event_id], references: [id])
+  event          Event     @relation(fields: [event_id], references: [id], onDelete: Cascade)
   title          String
   description    String?
   start_datetime DateTime
@@ -128,7 +137,7 @@ model TimelineItem {
 model AdminContact {
   id          String  @id @default(uuid())
   event_id    String
-  event       Event   @relation(fields: [event_id], references: [id])
+  event       Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
   name        String
   photo_url   String?
   role        String?
@@ -140,10 +149,53 @@ model AdminContact {
   sort_order  Int     @default(0)
 }
 
+model Rubric {
+  id          String   @id @default(uuid())
+  event_id    String
+  event       Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  weight      Float    @default(25.0)
+  max_score   Float    @default(10.0)
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+}
+
+model CertificateTemplate {
+  id                 String   @id @default(uuid())
+  event_id           String
+  event              Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  type               String   // 'WINNER_1', 'WINNER_2', 'WINNER_3', 'PARTICIPANT', 'CUSTOM'
+  title              String
+  template_image_url String
+  config             Json?    // coordinate configurations: x, y, font_size, color, alignment, etc.
+  created_at         DateTime @default(now())
+}
+
+model Certificate {
+  id              String   @id @default(uuid())
+  certificate_no  String   @unique
+  event_id        String
+  event           Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user_id         String
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  team_id         String?
+  type            String   // 'WINNER_1', 'WINNER_2', 'WINNER_3', 'PARTICIPANT', 'CUSTOM'
+  title           String   // '1st Place Winner', '2nd Place Winner', '3rd Place Winner', 'Certificate of Participation'
+  recipient_name  String
+  team_name       String?
+  event_name      String
+  issue_date      DateTime @default(now())
+  file_url        String?
+  signature_hash  String?
+  metadata        Json?
+  created_at      DateTime @default(now())
+}
+
 model Team {
   id             String         @id @default(uuid())
   event_id       String
-  event          Event          @relation(fields: [event_id], references: [id])
+  event          Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
   name           String
   invite_code    String         @unique
   members        TeamMember[]
@@ -154,9 +206,9 @@ model Team {
 model JoinRequest {
   id             String         @id @default(uuid())
   team_id        String
-  team           Team           @relation(fields: [team_id], references: [id])
+  team           Team           @relation(fields: [team_id], references: [id], onDelete: Cascade)
   user_id        String
-  user           User           @relation(fields: [user_id], references: [id])
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   status         String         @default("PENDING") // PENDING, ACCEPTED, REJECTED
   created_at     DateTime       @default(now())
 
@@ -166,9 +218,9 @@ model JoinRequest {
 model TeamMember {
   id             String         @id @default(uuid())
   team_id        String
-  team           Team           @relation(fields: [team_id], references: [id])
+  team           Team           @relation(fields: [team_id], references: [id], onDelete: Cascade)
   user_id        String
-  user           User           @relation(fields: [user_id], references: [id])
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   
   @@unique([user_id, team_id])
 }
@@ -176,9 +228,9 @@ model TeamMember {
 model Submission {
   id             String         @id @default(uuid())
   team_id        String
-  team           Team           @relation(fields: [team_id], references: [id])
+  team           Team           @relation(fields: [team_id], references: [id], onDelete: Cascade)
   event_id       String
-  event          Event          @relation(fields: [event_id], references: [id])
+  event          Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
   title          String
   description    String
   repo_url       String?
@@ -189,14 +241,29 @@ model Submission {
   updated_at     DateTime       @updatedAt
   assignments    JudgeAssignment[]
   scores         Score[]
+  votes          Vote[]
+}
+
+model Vote {
+  id             String         @id @default(uuid())
+  event_id       String
+  event          Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  project_id     String
+  submission     Submission     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user_id        String
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  voter_ip       String?
+  created_at     DateTime       @default(now())
+
+  @@unique([event_id, user_id])
 }
 
 model Judge {
   id             String         @id @default(uuid())
   user_id        String
-  user           User           @relation(fields: [user_id], references: [id])
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   event_id       String
-  event          Event          @relation(fields: [event_id], references: [id])
+  event          Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
   
   display_name   String?
   photo_url      String?
@@ -214,17 +281,17 @@ model Judge {
 model JudgeAssignment {
   id             String         @id @default(uuid())
   judge_id       String
-  judge          Judge          @relation(fields: [judge_id], references: [id])
+  judge          Judge          @relation(fields: [judge_id], references: [id], onDelete: Cascade)
   submission_id  String
-  submission     Submission     @relation(fields: [submission_id], references: [id])
+  submission     Submission     @relation(fields: [submission_id], references: [id], onDelete: Cascade)
 }
 
 model Score {
   id             String         @id @default(uuid())
   judge_id       String
-  judge          Judge          @relation(fields: [judge_id], references: [id])
+  judge          Judge          @relation(fields: [judge_id], references: [id], onDelete: Cascade)
   submission_id  String
-  submission     Submission     @relation(fields: [submission_id], references: [id])
+  submission     Submission     @relation(fields: [submission_id], references: [id], onDelete: Cascade)
   rubric_item    String
   raw_score      Float
   weighted_score Float
@@ -241,19 +308,19 @@ model InviteToken {
 }
 
 model PasswordResetRequest {
-  id          String   @id @default(uuid())
-  user_id     String
-  user        User     @relation(fields: [user_id], references: [id])
-  status      String   @default("PENDING") // PENDING, PASSKEY_GENERATED, RESOLVED, CANCELLED
+  id           String   @id @default(uuid())
+  user_id      String
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  status       String   @default("PENDING") // PENDING, PASSKEY_GENERATED, RESOLVED, CANCELLED
   requested_at DateTime @default(now())
-  resolved_at DateTime?
-  tokens      PasswordResetToken[]
+  resolved_at  DateTime?
+  tokens       PasswordResetToken[]
 }
 
 model PasswordResetToken {
   id          String   @id @default(uuid())
   request_id  String
-  request     PasswordResetRequest @relation(fields: [request_id], references: [id])
+  request     PasswordResetRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
   user_id     String
   token_hash  String
   expires_at  DateTime

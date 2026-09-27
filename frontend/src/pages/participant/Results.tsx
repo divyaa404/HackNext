@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Trophy, Medal, Award, ExternalLink, Sparkles, RefreshCw, Star } from 'lucide-react';
+import { Trophy, Medal, Award, ExternalLink, RefreshCw } from 'lucide-react';
 
 export const Results = () => {
   const [data, setData] = useState<{ eventName?: string; results?: any[] } | null>(null);

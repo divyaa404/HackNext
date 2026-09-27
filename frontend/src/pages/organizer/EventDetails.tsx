@@ -954,6 +954,7 @@ export const EventDetails = () => {
               show_rules: formData.get('show_rules') === 'true',
               show_timeline: formData.get('show_timeline') === 'true',
               show_contacts: formData.get('show_contacts') === 'true',
+              show_certificates: formData.get('show_certificates') === 'true',
               show_public_judges: false
             };
             setIsSaving(true);
@@ -962,12 +963,13 @@ export const EventDetails = () => {
                 showToast('Visibility settings saved!', 'success');
                 loadEventDetails();
               })
-              .catch(() => showToast('Failed to update visibility', 'error'))
+              .catch((err) => showToast(err.response?.data?.error || 'Failed to update visibility', 'error'))
               .finally(() => setIsSaving(false));
           }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { key: 'show_public_results', label: 'Publish Leaderboard & Results', desc: 'Display official ranking and results tab in navigation and public portal' },
+                { key: 'show_certificates', label: 'Participant Certificates', desc: 'Enable participant download of official certificates once generated in Certificate Studio' },
                 { key: 'show_public_teams', label: 'Public Teams Directory', desc: 'Display registered teams on public page' },
                 { key: 'show_public_projects', label: 'Public Projects Gallery', desc: 'Display submitted hackathon projects publicly' },
                 { key: 'show_prizes', label: 'Prizes & Rewards', desc: 'Display prize pool and category tracks' },
