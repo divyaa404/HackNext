@@ -99,6 +99,10 @@ export const JudgeDashboard = () => {
   const [submittingScore, setSubmittingScore] = useState(false);
   const [scoreSuccessMessage, setScoreSuccessMessage] = useState<string | null>(null);
   const [submittedModalData, setSubmittedModalData] = useState<SubmittedConfirmationData | null>(null);
+  const [isDeckExpanded, setIsDeckExpanded] = useState(false);
+  const [deckSize, setDeckSize] = useState<'standard' | 'large'>('large');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [pdfFitMode, setPdfFitMode] = useState<'Fit' | 'FitH' | 'FitV'>('Fit');
 
   // Timer State (auto starts when a project is selected)
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -369,6 +373,20 @@ export const JudgeDashboard = () => {
 
         {/* Center: Live Sync Status, Export & Theme Toggle */}
         <div className="flex items-center space-x-3">
+          {/* Submissions Sidebar Toggle */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all shadow-sm ${
+              isSidebarOpen 
+                ? 'border-red-600 bg-red-600 text-white' 
+                : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:border-black dark:hover:border-white'
+            }`}
+            title={isSidebarOpen ? "Hide Submissions List Sidebar" : "Show Submissions List Sidebar"}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{isSidebarOpen ? 'Hide Submissions' : `Submissions (${submissions.length})`}</span>
+          </button>
+
           {/* Online/Offline Status */}
           <div 
             className={`flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shadow-sm ${
@@ -449,11 +467,11 @@ export const JudgeDashboard = () => {
         <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-black overflow-hidden relative">
           
           {selectedSub ? (
-            /* PROJECT ACTIVE EVALUATION VIEW */
+            /* PROJECT ACTIVE EVALUATION VIEW: SPLIT-SCREEN WORKSPACE */
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               
-              {/* Project Top Bar (Title, Team, Progress Bar & Auto-Timer) */}
-              <div className="shrink-0 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-wrap items-center justify-between gap-4">
+              {/* Project Top Bar (Close Button, Team Name, Progress Bar & Auto-Timer) */}
+              <div className="shrink-0 px-6 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-wrap items-center justify-between gap-4">
                 
                 {/* Left controls */}
                 <div className="flex items-center space-x-3">
@@ -473,15 +491,15 @@ export const JudgeDashboard = () => {
                   </span>
                 </div>
 
-                {/* Center: Left Side Progress Bar Indicator */}
-                <div className="hidden lg:flex items-center space-x-3 px-4 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+                {/* Center: Progress Bar Indicator */}
+                <div className="hidden lg:flex items-center space-x-3 px-4 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-300">
                     <BarChart3 className="w-3.5 h-3.5 text-red-600" />
                     <span>Progress:</span>
                     <span className="font-mono text-black dark:text-white">{progressMetrics.evaluated} / {progressMetrics.total}</span>
                     <span className="text-[11px] text-zinc-400">({progressMetrics.percentage}%)</span>
                   </div>
-                  <div className="w-28 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="w-24 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-red-600 rounded-full transition-all duration-300"
                       style={{ width: `${progressMetrics.percentage}%` }}
@@ -491,7 +509,7 @@ export const JudgeDashboard = () => {
 
                 {/* Right: Auto Evaluation Timer Corner Box */}
                 <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-2 px-3.5 py-1 rounded-lg border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black shadow-sm">
+                  <div className="flex items-center space-x-2 px-3 py-1 rounded-lg border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black shadow-sm">
                     <Timer className="w-4 h-4 text-red-500 dark:text-red-600 animate-pulse" />
                     <span className="text-xs font-mono font-black tracking-widest">
                       {formatTimer(timerSeconds)}
@@ -503,312 +521,307 @@ export const JudgeDashboard = () => {
                 </div>
               </div>
 
-              {/* Scrollable Project Overview Area (Scrollbar hidden) */}
-              <div className="flex-1 overflow-y-auto px-6 md:px-10 py-6 space-y-8 no-scrollbar">
+              {/* Main Split-Screen Workspace */}
+              <div className="flex-1 flex overflow-hidden">
                 
-                {/* 1. Presentation Deck Viewer (Full Width & Height) */}
-                <div className="w-full">
-                  <div className="flex items-center justify-between pb-3 mb-2 border-b border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center space-x-2">
-                      <div className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800">
-                        <FileText className="w-4 h-4 text-red-600" />
-                      </div>
-                      <h2 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">
-                        Presentation Deck (PPT / PDF)
+                {/* 1. LEFT PANEL: Full 100% Height PDF Presentation Deck Viewer */}
+                <div className="flex-1 h-full flex flex-col bg-zinc-900 overflow-hidden relative border-r border-zinc-800">
+                  <div className="px-4 py-2 bg-zinc-950 border-b border-zinc-800 flex flex-wrap items-center justify-between text-white shrink-0 gap-2">
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                      <h2 className="text-xs font-black uppercase tracking-wider truncate">
+                        Presentation Deck (Whole Slide View)
                       </h2>
                     </div>
 
                     {selectedSub.pdf_url && (
-                      <a
-                        href={selectedSub.pdf_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center space-x-1.5 px-3 py-1 text-xs font-bold rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
-                      >
-                        <Maximize2 className="w-3.5 h-3.5" />
-                        <span>Open in New Tab</span>
-                      </a>
-                    )}
-                  </div>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        {/* Fit Mode Switcher */}
+                        <div className="flex items-center bg-zinc-900 rounded border border-zinc-800 p-0.5 text-[10px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setPdfFitMode('Fit')}
+                            className={`px-2.5 py-0.5 rounded transition ${pdfFitMode === 'Fit' ? 'bg-red-600 text-white font-black' : 'text-zinc-400 hover:text-white'}`}
+                            title="Fit whole slide in viewport"
+                          >
+                            Fit Slide
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPdfFitMode('FitH')}
+                            className={`px-2.5 py-0.5 rounded transition ${pdfFitMode === 'FitH' ? 'bg-red-600 text-white font-black' : 'text-zinc-400 hover:text-white'}`}
+                            title="Fit slide width"
+                          >
+                            Fit Width
+                          </button>
+                        </div>
 
-                  {selectedSub.pdf_url ? (
-                    <div className="w-full rounded-xl overflow-hidden border-2 border-black dark:border-zinc-800 bg-zinc-900 shadow-md flex flex-col">
-                      <div className="w-full h-[580px] md:h-[660px] xl:h-[720px] bg-white relative">
-                        <iframe
-                          src={`${selectedSub.pdf_url}#toolbar=1&navpanes=0&scrollbar=1`}
-                          className="w-full h-full border-0 bg-white"
-                          title="Presentation Slides Viewer"
-                        />
-                      </div>
-                      
-                      {/* Friendly Helper Footer Bar */}
-                      <div className="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 gap-2">
-                        <span>Having trouble reading the slides?</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsDeckExpanded(true)}
+                          className="flex items-center space-x-1.5 px-3 py-1 text-xs font-bold rounded bg-red-600 hover:bg-red-700 text-white transition-all shadow-sm active:scale-95"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">100% Fullscreen</span>
+                        </button>
+
                         <a
                           href={selectedSub.pdf_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-bold text-black dark:text-white underline hover:text-red-600 transition-colors flex items-center gap-1"
+                          className="flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
                         >
-                          <span>Open Slides in Full Screen</span>
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">New Tab</span>
                         </a>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="w-full py-16 px-6 rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center text-zinc-500 mb-4 border border-zinc-300 dark:border-zinc-800">
-                        <FileText className="w-7 h-7 text-zinc-400" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 w-full bg-zinc-950 relative overflow-hidden flex items-center justify-center p-2">
+                    {selectedSub.pdf_url ? (
+                      <iframe
+                        src={`${selectedSub.pdf_url}#toolbar=1&navpanes=0&view=${pdfFitMode}`}
+                        className="w-full h-full border-0 bg-white rounded-lg shadow-2xl"
+                        title="Presentation Slides Viewer"
+                      />
+                    ) : (
+                      <div className="w-full h-full p-8 bg-zinc-950 flex flex-col items-center justify-center text-center text-zinc-400">
+                        <FileText className="w-12 h-12 text-zinc-600 mb-3" />
+                        <h3 className="font-extrabold text-white text-base">Presentation Slides Not Attached</h3>
+                        <p className="text-xs max-w-sm mt-1 text-zinc-500">
+                          The team did not attach presentation slides for this submission. Inspect demo video & code repository links on the right panel.
+                        </p>
                       </div>
-                      <h3 className="font-extrabold text-black dark:text-white text-base">
-                        Presentation Slides Not Provided
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. RIGHT PANEL: Team Details, Abstract, Links & Evaluation Scorecard (Non-scrolling compact) */}
+                <div className="w-[440px] lg:w-[480px] xl:w-[540px] shrink-0 h-full flex flex-col justify-between bg-white dark:bg-black overflow-y-auto no-scrollbar p-4 space-y-3 border-l border-zinc-200 dark:border-zinc-800">
+                  
+                  {/* Top Section: Header, Team Roster, Abstract & Links */}
+                  <div className="space-y-2.5">
+                    {/* Team & Project Header */}
+                    <div className="space-y-1.5 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white uppercase tracking-wider shadow-sm">
+                          <Layers className="w-3 h-3 mr-1" />
+                          {selectedSub.team?.name || 'Unknown Team'}
+                        </span>
+
+                        {selectedSub.team?.members?.[0]?.user?.name && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
+                            <Crown className="w-3 h-3 mr-1 text-amber-500" />
+                            Leader: {selectedSub.team.members[0].user.name}
+                          </span>
+                        )}
+                      </div>
+
+                      <h1 className="text-lg font-black tracking-tight text-black dark:text-white leading-snug truncate">
+                        {selectedSub.title}
+                      </h1>
+
+                      {/* Team Members Roster */}
+                      {selectedSub.team?.members && selectedSub.team.members.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                          <span className="text-[10px] font-bold text-zinc-400 mr-1 flex items-center">
+                            <UserIcon className="w-3 h-3 mr-0.5 text-red-600" />
+                            Roster ({selectedSub.team.members.length}):
+                          </span>
+                          {selectedSub.team.members.map((m: any, idx: number) => (
+                            <span
+                              key={m.id || idx}
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                idx === 0
+                                  ? 'bg-amber-100 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                                  : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300'
+                              }`}
+                            >
+                              {m.user?.name || m.user?.email || 'Member'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Idea & Abstract Description (Compact 2-line clamp) */}
+                    <div className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 space-y-1">
+                      <h3 className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-red-600" />
+                        Idea & Abstract
                       </h3>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1.5 leading-relaxed">
-                        The team has not attached presentation slides for this project. You can still evaluate their work using the project description, demo video, and code link below.
+                      <p className="text-zinc-800 dark:text-zinc-200 text-[11px] leading-relaxed line-clamp-2 font-medium">
+                        {selectedSub.description || 'No description provided by the team.'}
                       </p>
                     </div>
-                  )}
-                </div>
 
-                {/* 2. Project Title & Team Header */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-black text-white dark:bg-white dark:text-black shadow-sm">
-                      <Layers className="w-3.5 h-3.5 mr-1.5" />
-                      Team: {selectedSub.team?.name || 'Unknown Team'}
-                    </span>
-
-                    {selectedSub.team?.members?.[0]?.user?.name && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800">
-                        <Crown className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                        Leader: {selectedSub.team.members[0].user.name}
-                      </span>
-                    )}
-
-                    <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800">
-                      <Clock className="w-3.5 h-3.5 mr-1.5" />
-                      Submitted: {selectedSub.submitted_at ? new Date(selectedSub.submitted_at).toLocaleDateString() : 'Recent'}
-                    </span>
-                  </div>
-
-                  <h1 className="text-3xl md:text-4xl font-black tracking-tight text-black dark:text-white leading-tight">
-                    {selectedSub.title}
-                  </h1>
-                </div>
-
-                {/* 3. Project Idea & Description */}
-                <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 space-y-3 shadow-sm">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-red-600" />
-                    Idea & Abstract
-                  </h3>
-                  <div className="text-zinc-800 dark:text-zinc-200 text-base leading-relaxed whitespace-pre-line font-normal">
-                    {selectedSub.description || 'No description provided by the team.'}
-                  </div>
-                </div>
-
-                {/* 4. External Links Section */}
-                <div className="space-y-3 pb-8">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Submission Attachments & Links
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
-                    {selectedSub.repo_url && (
-                      <a 
-                        href={selectedSub.repo_url} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center space-x-2 px-4 py-2.5 rounded-lg border border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white font-bold text-xs hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all shadow-sm active:scale-95"
-                      >
-                        <Code2 className="w-4 h-4" />
-                        <span>Code Repository</span>
-                        <ExternalLink className="w-3 h-3 opacity-60 ml-1" />
-                      </a>
-                    )}
-                    {selectedSub.demo_video_url && (
-                      <a 
-                        href={selectedSub.demo_video_url} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center space-x-2 px-4 py-2.5 rounded-lg border border-red-600 bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shadow-sm active:scale-95"
-                      >
-                        <Video className="w-4 h-4" />
-                        <span>Demo Video</span>
-                        <ExternalLink className="w-3 h-3 opacity-80 ml-1" />
-                      </a>
-                    )}
-                    {selectedSub.pdf_url && (
-                      <a 
-                        href={selectedSub.pdf_url} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center space-x-2 px-4 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-bold text-xs hover:border-black dark:hover:border-white transition-all shadow-sm active:scale-95"
-                      >
-                        <FileText className="w-4 h-4 text-red-600" />
-                        <span>View / Download Presentation Slides</span>
-                        <ExternalLink className="w-3 h-3 opacity-60 ml-1" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* ========================================================================= */}
-              {/* FIXED MULTI-FACTOR EVALUATION SCORECARD BOX (Anchored at Bottom)         */}
-              {/* ========================================================================= */}
-              <div className="shrink-0 border-t-2 border-black dark:border-zinc-800 bg-white dark:bg-black px-6 md:px-10 py-5 shadow-2xl z-20">
-                <form onSubmit={handleSubmitEvaluation} className="space-y-4">
-                  
-                  {/* Rubric Header & Total Live Calculation */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 pb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-black text-xs shrink-0">
-                        <Sliders className="w-4 h-4 text-red-500" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black uppercase tracking-wider text-black dark:text-white flex items-center gap-2">
-                          Evaluation Scorecard
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                            4 Criteria • Max 100
+                    {/* Submission Links (Compact Inline Buttons) */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedSub.repo_url && (
+                        <a 
+                          href={selectedSub.repo_url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="flex-1 inline-flex items-center justify-between px-2.5 py-1.5 rounded-md border border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white font-bold text-[11px] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all shadow-sm"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Code2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                            <span>Code Repo</span>
                           </span>
-                        </h4>
-                      </div>
+                          <ExternalLink className="w-3 h-3 opacity-60 ml-1" />
+                        </a>
+                      )}
+                      {selectedSub.demo_video_url && (
+                        <a 
+                          href={selectedSub.demo_video_url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="flex-1 inline-flex items-center justify-between px-2.5 py-1.5 rounded-md border border-red-600 bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 transition-all shadow-sm"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Video className="w-3.5 h-3.5 shrink-0" />
+                            <span>Demo Video</span>
+                          </span>
+                          <ExternalLink className="w-3 h-3 opacity-80 ml-1" />
+                        </a>
+                      )}
+                      {selectedSub.pdf_url && (
+                        <a 
+                          href={selectedSub.pdf_url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="flex-1 inline-flex items-center justify-between px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-bold text-[11px] hover:border-black dark:hover:border-white transition-all shadow-sm"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                            <span>PDF Tab</span>
+                          </span>
+                          <ExternalLink className="w-3 h-3 opacity-60 ml-1" />
+                        </a>
+                      )}
                     </div>
+                  </div>
 
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2 px-3 py-1 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900">
-                        <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400">Total Score:</span>
-                        <span className="text-lg font-black font-mono text-black dark:text-white">
-                          {totalCalculatedScore}
-                        </span>
-                        <span className="text-xs font-medium text-zinc-400">/ 100</span>
+                  {/* Scorecard Form (2x2 Grid Layout) */}
+                  <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <form onSubmit={handleSubmitEvaluation} className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-black dark:text-white flex items-center gap-1">
+                          <Sliders className="w-3.5 h-3.5 text-red-600" />
+                          Evaluation Scorecard
+                        </h4>
+                        <div className="flex items-center space-x-1 px-2 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900">
+                          <span className="text-[10px] font-bold text-zinc-500">Total:</span>
+                          <span className="text-xs font-black font-mono text-black dark:text-white">{totalCalculatedScore}</span>
+                          <span className="text-[10px] font-medium text-zinc-400">/ 100</span>
+                        </div>
                       </div>
 
+                      {/* Inline Confirmation */}
+                      {scoreSuccessMessage && (
+                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-[11px] font-bold flex items-center justify-between shadow-sm">
+                          <div className="flex items-center space-x-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{scoreSuccessMessage}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2x2 Grid:
+                          Row 1: Innovation & Problem Solving  |  Technical Architecture & Code
+                          Row 2: UI / UX Design & Usability    |  Presentation & Pitch Delivery
+                      */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {RUBRIC_CRITERIA.map((criterion) => {
+                          const currentVal = factorScores[criterion.id] ?? 0;
+                          return (
+                            <div 
+                              key={criterion.id} 
+                              className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 space-y-1 hover:border-zinc-400 dark:hover:border-zinc-700 transition-colors shadow-sm"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-extrabold text-black dark:text-white truncate pr-1" title={criterion.name}>
+                                  {criterion.id === 'innovation' && '1. Innovation & Problem'}
+                                  {criterion.id === 'technical' && '2. Tech Architecture'}
+                                  {criterion.id === 'ui_ux' && '3. UI / UX Usability'}
+                                  {criterion.id === 'presentation' && '4. Pitch & Presentation'}
+                                </span>
+                                <span className="text-[9px] font-mono font-bold text-zinc-400 shrink-0">
+                                  /25
+                                </span>
+                              </div>
+
+                              <div className="flex items-center space-x-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={criterion.maxScore}
+                                  value={currentVal}
+                                  onChange={(e) => {
+                                    const parsed = parseInt(e.target.value, 10);
+                                    handleScoreChange(criterion.id, isNaN(parsed) ? 0 : parsed);
+                                  }}
+                                  className="w-full px-2 py-0.5 text-center font-mono font-black text-xs rounded border border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white focus:outline-none focus:border-red-600 dark:focus:border-red-500 transition-all shadow-sm"
+                                  placeholder="0"
+                                />
+                              </div>
+
+                              <div className="flex justify-between text-[9px] font-mono text-zinc-400 pt-0.5">
+                                {[5, 15, 20, 25].map((pts) => (
+                                  <button 
+                                    key={pts}
+                                    type="button" 
+                                    onClick={() => handleScoreChange(criterion.id, pts)} 
+                                    className={`px-1.5 py-0.5 rounded font-black transition-all ${
+                                      currentVal === pts 
+                                        ? 'bg-red-600 text-white shadow-sm' 
+                                        : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black'
+                                    }`}
+                                  >
+                                    {pts}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Feedback Notes Input */}
+                      <div>
+                        <div className="relative">
+                          <MessageSquare className="w-3.5 h-3.5 absolute left-2.5 top-2 text-zinc-400" />
+                          <input
+                            type="text"
+                            placeholder="Optional evaluation comments..."
+                            value={judgeFeedback}
+                            onChange={(e) => setJudgeFeedback(e.target.value)}
+                            className="w-full pl-8 pr-2.5 py-1 text-[11px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Submit Button */}
                       <button
                         type="submit"
                         disabled={submittingScore}
-                        className="flex items-center space-x-2 px-5 py-2 rounded-lg bg-black dark:bg-white text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:bg-red-600 dark:hover:bg-red-600 dark:hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-50"
+                        className="w-full py-2 rounded-lg bg-black dark:bg-white text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:bg-red-600 dark:hover:bg-red-600 dark:hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                       >
                         {submittingScore ? (
                           <span>Saving Marks...</span>
                         ) : (
                           <>
                             <Send className="w-3.5 h-3.5" />
-                            <span>Submit Evaluation</span>
+                            <span>Submit Evaluation ({totalCalculatedScore}/100)</span>
                           </>
                         )}
                       </button>
-                    </div>
+                    </form>
                   </div>
 
-                  {/* Inline Score Confirmation Summary Banner if submitted */}
-                  {scoreSuccessMessage && (
-                    <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-bold flex items-center justify-between shadow-sm animate-fadeIn">
-                      <div className="flex items-center space-x-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>{scoreSuccessMessage}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSubmittedModalData({
-                          teamName: selectedSub.team?.name || 'Team',
-                          projectTitle: selectedSub.title || 'Project',
-                          totalScore: totalCalculatedScore,
-                          timeSpent: formatTimer(timerSeconds),
-                          factorScores: { ...factorScores },
-                          feedback: judgeFeedback
-                        })}
-                        className="underline hover:text-emerald-700 dark:hover:text-white ml-2 text-[11px]"
-                      >
-                        View Full Summary
-                      </button>
-                    </div>
-                  )}
+                </div>
 
-                  {/* 4-Factor Interactive Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
-                    {RUBRIC_CRITERIA.map((criterion) => {
-                      const currentVal = factorScores[criterion.id] || 0;
-                      return (
-                        <div 
-                          key={criterion.id} 
-                          className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 space-y-2 hover:border-zinc-400 dark:hover:border-zinc-700 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-extrabold text-black dark:text-white truncate">
-                              {criterion.name}
-                            </span>
-                            <span className="text-xs font-mono font-black px-2 py-0.5 rounded bg-black text-white dark:bg-white dark:text-black">
-                              {currentVal} / {criterion.maxScore}
-                            </span>
-                          </div>
-
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 h-7">
-                            {criterion.description}
-                          </p>
-
-                          {/* Range Slider */}
-                          <input
-                            type="range"
-                            min="0"
-                            max={criterion.maxScore}
-                            value={currentVal}
-                            onChange={(e) => handleScoreChange(criterion.id, parseInt(e.target.value))}
-                            className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-red-600"
-                          />
-
-                          {/* Quick Value Step Shortcuts */}
-                          <div className="flex justify-between text-[10px] font-mono text-zinc-400 pt-0.5">
-                            <button 
-                              type="button" 
-                              onClick={() => handleScoreChange(criterion.id, 5)} 
-                              className="hover:text-black dark:hover:text-white"
-                            >
-                              5
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => handleScoreChange(criterion.id, 15)} 
-                              className="hover:text-black dark:hover:text-white"
-                            >
-                              15
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => handleScoreChange(criterion.id, 20)} 
-                              className="hover:text-black dark:hover:text-white"
-                            >
-                              20
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => handleScoreChange(criterion.id, 25)} 
-                              className="hover:text-black dark:hover:text-white font-bold"
-                            >
-                              25
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Optional Feedback Notes */}
-                  <div className="pt-2 flex items-center gap-3">
-                    <div className="relative flex-1">
-                      <MessageSquare className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
-                      <input
-                        type="text"
-                        placeholder="Optional: Enter feedback, strengths or comments for the team..."
-                        value={judgeFeedback}
-                        onChange={(e) => setJudgeFeedback(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                </form>
               </div>
 
             </div>
@@ -1021,7 +1034,8 @@ export const JudgeDashboard = () => {
         {/* ========================================================================= */}
         {/* RIGHT PANEL: Submissions List Sidebar                                     */}
         {/* ========================================================================= */}
-        <aside className="w-[360px] md:w-[400px] shrink-0 border-l border-zinc-200 dark:border-zinc-800 flex flex-col h-full bg-zinc-50 dark:bg-black">
+        {isSidebarOpen && (
+          <aside className="w-[340px] xl:w-[380px] shrink-0 border-l border-zinc-200 dark:border-zinc-800 flex flex-col h-full bg-zinc-50 dark:bg-black transition-all">
           
           {/* Sidebar Header & Search */}
           <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black space-y-3">
@@ -1152,6 +1166,7 @@ export const JudgeDashboard = () => {
             )}
           </div>
         </aside>
+        )}
 
       </div>
 
@@ -1245,6 +1260,53 @@ export const JudgeDashboard = () => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* FULLSCREEN PRESENTATION DECK MODAL (100% Viewport Inspection)             */}
+      {/* ========================================================================= */}
+      {isDeckExpanded && selectedSub?.pdf_url && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-4 md:p-6 space-y-3 animate-fadeIn">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between text-white border-b border-zinc-800 pb-3">
+            <div className="flex items-center space-x-3 min-w-0">
+              <FileText className="w-5 h-5 text-red-600 shrink-0" />
+              <h3 className="text-base font-black uppercase tracking-wider truncate">
+                {selectedSub.team?.name || 'Team'} — {selectedSub.title} (Presentation Deck)
+              </h3>
+            </div>
+
+            <div className="flex items-center space-x-3 shrink-0">
+              <a
+                href={selectedSub.pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg border border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 transition"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open in New Tab</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setIsDeckExpanded(false)}
+                className="flex items-center space-x-1.5 px-4 py-1.5 text-xs font-black uppercase tracking-wider rounded-lg bg-red-600 hover:bg-red-700 text-white transition shadow"
+              >
+                <X className="w-4 h-4" />
+                <span>Close Fullscreen</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen iFrame Container */}
+          <div className="flex-1 w-full bg-white rounded-2xl overflow-hidden border-2 border-white shadow-2xl">
+            <iframe
+              src={`${selectedSub.pdf_url}#toolbar=1&navpanes=1&scrollbar=1`}
+              className="w-full h-full border-0 bg-white"
+              title="Expanded Fullscreen Presentation Viewer"
+            />
           </div>
         </div>
       )}
