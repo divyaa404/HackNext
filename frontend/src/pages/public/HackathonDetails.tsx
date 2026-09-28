@@ -190,8 +190,24 @@ export const HackathonDetails = () => {
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bauhaus-bg text-bauhaus-fg">
-        <div className="text-4xl font-black uppercase">Event Not Found</div>
+      <div className="min-h-screen flex items-center justify-center bg-bauhaus-bg text-bauhaus-fg p-6">
+        <div className="max-w-lg w-full bg-bauhaus-card border-8 border-bauhaus-border p-8 text-center shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+          <div className="w-16 h-16 bg-bauhaus-secondary border-4 border-bauhaus-border flex items-center justify-center mx-auto mb-6 text-2xl font-black">
+            !
+          </div>
+          <h2 className="text-3xl font-black uppercase tracking-tight mb-4">No Active Hackathon</h2>
+          <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300 mb-6">
+            The organizer has not created or published a hackathon event yet. Participant registration and project submissions will open once an event is set up.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/admin/login" className="px-5 py-3 bg-bauhaus-primary text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+              Organizer Login
+            </Link>
+            <Link to="/login" className="px-5 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-black text-xs uppercase tracking-wider border-4 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] inline-block">
+              Participant Login
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

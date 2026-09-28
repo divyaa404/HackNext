@@ -7,6 +7,16 @@ import prisma from '../models/db';
 export const signup = async (req: Request, res: Response) => {
   try {
     const { email, password, role } = req.body;
+    const targetRole = role || 'participant';
+
+    if (targetRole === 'participant') {
+      const eventCount = await prisma.event.count();
+      if (eventCount === 0) {
+        return res.status(400).json({ 
+          error: 'Registration is not open yet because no hackathon event has been created by the organizer.' 
+        });
+      }
+    }
     
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -17,7 +27,7 @@ export const signup = async (req: Request, res: Response) => {
       data: {
         email,
         password_hash,
-        role: role || 'participant'
+        role: targetRole
       }
     });
     

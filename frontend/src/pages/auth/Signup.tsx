@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -7,12 +7,34 @@ export const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [checkingEvent, setCheckingEvent] = useState(true);
+  const [hasEvent, setHasEvent] = useState<boolean | null>(null);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkEvent = async () => {
+      try {
+        const res = await axios.get('/api/public/events/latest/public');
+        if (res.data && res.data.id) {
+          setHasEvent(true);
+        } else {
+          setHasEvent(false);
+        }
+      } catch (err: any) {
+        setHasEvent(false);
+      } finally {
+        setCheckingEvent(false);
+      }
+    };
+    checkEvent();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       await axios.post(`/api/auth/signup`, { email, password, role: 'participant' });
       // After signup, automatically login
@@ -21,6 +43,8 @@ export const Signup = () => {
       navigate('/participant/profile');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Signup failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,7 +60,20 @@ export const Signup = () => {
 
       <div className="w-full max-w-md bg-bauhaus-card border-8 border-bauhaus-border p-8 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] relative z-10">
         <h2 className="text-4xl font-black text-center uppercase tracking-tighter mb-8">Register</h2>
+        
         {error && <div className="bg-red-100 border-4 border-red-500 text-red-700 p-3 mb-6 text-sm font-bold uppercase">{error}</div>}
+
+        {!checkingEvent && hasEvent === false && (
+          <div className="bg-amber-100 border-4 border-amber-600 text-amber-900 p-4 mb-6 text-sm font-bold uppercase space-y-2">
+            <p className="flex items-center gap-2">
+              <span>⚠️</span> Registration Unavailable
+            </p>
+            <p className="text-xs normal-case font-medium text-amber-800">
+              No hackathon event has been created yet. Participant registration will open once an organizer creates and publishes an event.
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-black uppercase tracking-widest mb-2">Email Address</label>
@@ -44,7 +81,8 @@ export const Signup = () => {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border-4 border-bauhaus-border bg-white text-black focus:outline-none focus:ring-0 focus:border-bauhaus-primary transition-colors font-medium"
+              disabled={hasEvent === false}
+              className="w-full px-4 py-3 border-4 border-bauhaus-border bg-white text-black focus:outline-none focus:ring-0 focus:border-bauhaus-primary transition-colors font-medium disabled:opacity-50 disabled:bg-zinc-100"
               required
             />
           </div>
@@ -54,12 +92,17 @@ export const Signup = () => {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border-4 border-bauhaus-border bg-white text-black focus:outline-none focus:ring-0 focus:border-bauhaus-secondary transition-colors font-medium"
+              disabled={hasEvent === false}
+              className="w-full px-4 py-3 border-4 border-bauhaus-border bg-white text-black focus:outline-none focus:ring-0 focus:border-bauhaus-secondary transition-colors font-medium disabled:opacity-50 disabled:bg-zinc-100"
               required
             />
           </div>
-          <button type="submit" className="w-full bg-red-600 text-white py-4 px-4 border-4 border-bauhaus-border hover:bg-red-700 font-black uppercase tracking-widest text-lg transition-colors">
-            Create Account
+          <button 
+            type="submit" 
+            disabled={hasEvent === false || loading}
+            className="w-full bg-red-600 text-white py-4 px-4 border-4 border-bauhaus-border hover:bg-red-700 font-black uppercase tracking-widest text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
         <div className="mt-8 text-center text-sm font-bold uppercase tracking-widest">

@@ -54,27 +54,8 @@ router.post('/create', requireAuth, requireRole('participant'), async (req, res)
     }
 
     if (!validEvent) {
-      // Find an organizer or admin to assign as creator
-      let creatorUser = await prisma.user.findFirst({
-        where: { role: { in: ['organizer', 'admin'] } }
-      });
-      if (!creatorUser) {
-        creatorUser = user;
-      }
-
-      validEvent = await prisma.event.create({
-        data: {
-          name: 'HackNext Hackathon',
-          slug: `hacknext-hackathon-${Date.now()}`,
-          short_description: 'Default hackathon event',
-          full_description: 'Welcome to HackNext Hackathon!',
-          start_date: new Date(),
-          end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          tracks: [],
-          prizes_config: {},
-          created_by: creatorUser ? creatorUser.id : userId
-        },
-        include: { timeline_items: true }
+      return res.status(400).json({ 
+        error: 'No active hackathon event found. An organizer must create an event before teams can be formed.' 
       });
     }
 
