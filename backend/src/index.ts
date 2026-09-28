@@ -51,8 +51,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', platform: 'HackNext' });
 });
 
-const checkAndInitOrganizer = async () => {
+const checkAndInitDockerOrganizer = async () => {
   try {
+    const isDocker = process.env.IS_DOCKER === 'true' || process.env.AUTO_INIT_ORGANIZER === 'true';
+    if (!isDocker) return;
+
     const count = await prisma.user.count({
       where: { role: { in: ['organizer', 'admin'] } }
     });
@@ -78,15 +81,18 @@ const checkAndInitOrganizer = async () => {
           must_change_password: false
         }
       });
-      console.log(`\n[HackNext Setup] Created initial Root Organizer (${staff_id} / ${email}).`);
+      console.log(`\n[Docker Auto-Init] Initial Organizer Account Created:`);
+      console.log(`Email:    ${email}`);
+      console.log(`Password: ${password}`);
+      console.log(`Staff ID: ${staff_id}\n`);
     }
   } catch (err) {
-    console.warn('[HackNext Setup] Note on organizer startup check:', err);
+    console.warn('[Docker Auto-Init] Note on organizer startup check:', err);
   }
 };
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT as number, '0.0.0.0', async () => {
   console.log(`Server running on port ${PORT} (0.0.0.0)`);
-  await checkAndInitOrganizer();
+  await checkAndInitDockerOrganizer();
 });

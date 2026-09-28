@@ -22,6 +22,7 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_password}@db:5432/${DB_NAME:-hackathon_db}?schema=public
       JWT_SECRET: ${JWT_SECRET:-hackathon_jwt_secret_key_change_in_production}
       PORT: ${BACKEND_PORT:-4000}
+      IS_DOCKER: "true"
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "${BACKEND_PORT:-4000}:${BACKEND_PORT:-4000}"
