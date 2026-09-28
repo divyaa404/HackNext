@@ -269,12 +269,24 @@ router.get('/all', requireAuth, async (req, res) => {
   try {
     const teams = await prisma.team.findMany({
       include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            team_size_min: true,
+            team_size_max: true,
+            start_date: true,
+            end_date: true,
+            timeline_items: { orderBy: { sort_order: 'asc' } }
+          }
+        },
         members: {
           include: {
             user: { select: { id: true, name: true, email: true } }
           }
         }
-      }
+      },
+      orderBy: { id: 'desc' }
     });
     res.json(teams);
   } catch (error) {

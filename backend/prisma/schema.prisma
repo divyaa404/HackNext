@@ -193,14 +193,16 @@ model Certificate {
 }
 
 model Team {
-  id             String         @id @default(uuid())
-  event_id       String
-  event          Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
-  name           String
-  invite_code    String         @unique
-  members        TeamMember[]
-  submissions    Submission[]
-  joinRequests   JoinRequest[]
+  id               String         @id @default(uuid())
+  event_id         String
+  event            Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  name             String
+  invite_code      String         @unique
+  members          TeamMember[]
+  submissions      Submission[]
+  joinRequests     JoinRequest[]
+  submission_alert String?
+  last_notified_at DateTime?
 }
 
 model JoinRequest {

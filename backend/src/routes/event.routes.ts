@@ -8,6 +8,13 @@ const prisma = new PrismaClient();
 // Create an event (Organizer only)
 router.post('/', requireAuth, requireRole('organizer', 'admin'), async (req, res) => {
   try {
+    const existingCount = await prisma.event.count();
+    if (existingCount > 0) {
+      return res.status(400).json({ 
+        error: 'Single Event Platform Limitation: A hackathon event already exists on this instance. Please manage and configure the existing event.' 
+      });
+    }
+
     const { name, start_date, end_date, tracks, prizes_config } = req.body;
     const startDt = new Date(start_date || Date.now());
     const endDt = new Date(end_date || Date.now() + 72 * 60 * 60 * 1000);

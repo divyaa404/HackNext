@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { 
@@ -12,7 +13,10 @@ import {
   Globe, 
   Sparkles, 
   ExternalLink,
-  Building2
+  Building2,
+  ArrowRight,
+  ArrowLeft,
+  AlertTriangle
 } from 'lucide-react';
 
 const GithubIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -39,11 +43,14 @@ const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 );
 
 export const Profile = () => {
+  const navigate = useNavigate();
   const { user, updateUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [redirecting, setRedirecting] = useState(false);
   const [activeTab, setActiveTab] = useState<'personal' | 'academic' | 'social'>('personal');
 
   const [formData, setFormData] = useState({
@@ -136,8 +143,7 @@ export const Profile = () => {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveProfileData = async (advanceMode: 'next' | 'stay' = 'next') => {
     setSaving(true);
     setError('');
     setSuccess(false);
@@ -168,12 +174,53 @@ export const Profile = () => {
       }
 
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 4000);
+
+      const isComplete = Boolean(
+        formData.name &&
+        formData.college &&
+        formData.year &&
+        formData.branch &&
+        formData.gender &&
+        formData.dob &&
+        formData.phone &&
+        formData.city
+      );
+
+      if (advanceMode === 'next') {
+        if (activeTab === 'personal') {
+          setSuccessMessage('Personal details saved! Advancing to Academic details...');
+          setActiveTab('academic');
+          setTimeout(() => setSuccess(false), 3500);
+        } else if (activeTab === 'academic') {
+          setSuccessMessage('Academic details saved! Advancing to Social links...');
+          setActiveTab('social');
+          setTimeout(() => setSuccess(false), 3500);
+        } else if (activeTab === 'social') {
+          if (isComplete) {
+            setSuccessMessage('Profile completed successfully! Redirecting to Team Workspace in 2s...');
+            setRedirecting(true);
+            setTimeout(() => {
+              navigate('/participant/team');
+            }, 1800);
+          } else {
+            setSuccessMessage('Social links saved! Profile updated.');
+            setTimeout(() => setSuccess(false), 3500);
+          }
+        }
+      } else {
+        setSuccessMessage('Profile changes saved successfully!');
+        setTimeout(() => setSuccess(false), 4000);
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to save profile. Please check your network.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveProfileData('next');
   };
 
   // Calculate profile completion percentage
@@ -198,7 +245,7 @@ export const Profile = () => {
         <div className="p-4 rounded-xl border-4 border-bauhaus-border bg-green-500 text-white shadow-[6px_6px_0px_rgba(0,0,0,1)] flex items-center justify-between animate-fadeIn">
           <div className="flex items-center space-x-3 font-black uppercase tracking-wider text-sm">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
-            <span>Profile Updated Successfully! Your public details are synced.</span>
+            <span>{successMessage || 'Profile Updated Successfully!'}</span>
           </div>
           <button onClick={() => setSuccess(false)} className="font-black text-lg px-2 hover:opacity-80">✕</button>
         </div>
@@ -206,7 +253,10 @@ export const Profile = () => {
 
       {error && (
         <div className="p-4 rounded-xl border-4 border-red-600 bg-red-100 text-red-800 font-black uppercase tracking-wider text-sm flex items-center justify-between shadow-[4px_4px_0px_rgba(220,38,38,1)]">
-          <span>{error}</span>
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-red-600" />
+            <span>{error}</span>
+          </div>
           <button onClick={() => setError('')} className="font-black text-lg px-2">✕</button>
         </div>
       )}
@@ -660,37 +710,102 @@ export const Profile = () => {
                 </div>
               )}
 
-              {/* Submit & Navigation Footer */}
-              <div className="pt-6 border-t-4 border-bauhaus-border flex flex-wrap items-center justify-between gap-4">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="bauhaus-button flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-black uppercase tracking-widest disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{saving ? 'Saving Changes...' : 'Save & Update Profile'}</span>
-                </button>
+              {/* Submit & Navigation Footer with Inline Popup */}
+              <div className="pt-6 border-t-4 border-bauhaus-border space-y-4">
+                
+                {/* Inline Popup Notification right above submit button */}
+                {success && (
+                  <div className="p-4 rounded-xl border-4 border-black bg-green-500 text-white shadow-[4px_4px_0px_rgba(0,0,0,1)] flex items-center justify-between animate-fadeIn">
+                    <div className="flex items-center space-x-3 font-black uppercase tracking-wider text-sm">
+                      <CheckCircle2 className="w-5 h-5 shrink-0" />
+                      <span>{successMessage || 'Profile Updated Successfully!'}</span>
+                    </div>
+                    <button type="button" onClick={() => setSuccess(false)} className="font-black text-lg px-2 hover:opacity-80">✕</button>
+                  </div>
+                )}
 
-                <div className="flex items-center space-x-2">
-                  {activeTab !== 'personal' && (
+                {error && (
+                  <div className="p-4 rounded-xl border-4 border-red-600 bg-red-100 text-red-800 font-black uppercase tracking-wider text-sm flex items-center justify-between shadow-[4px_4px_0px_rgba(220,38,38,1)] animate-fadeIn">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="w-5 h-5 shrink-0 text-red-600" />
+                      <span>{error}</span>
+                    </div>
+                    <button type="button" onClick={() => setError('')} className="font-black text-lg px-2">✕</button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={saving || redirecting}
+                      className="bauhaus-button flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Saving...</span>
+                        </>
+                      ) : redirecting ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-green-300" />
+                          <span>Redirecting...</span>
+                        </>
+                      ) : activeTab === 'personal' ? (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Save & Continue to Academic</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : activeTab === 'academic' ? (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Save & Continue to Social</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Save & Finish Profile</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
                     <button
                       type="button"
-                      onClick={() => setActiveTab(activeTab === 'social' ? 'academic' : 'personal')}
-                      className="px-4 py-2 border-2 border-bauhaus-border text-xs font-bold uppercase tracking-wider hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                      disabled={saving || redirecting}
+                      onClick={() => saveProfileData('stay')}
+                      className="px-5 py-3 border-2 border-bauhaus-border font-bold text-xs uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                     >
-                      &larr; Back
+                      Save Only
                     </button>
-                  )}
-                  {activeTab !== 'social' && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab(activeTab === 'personal' ? 'academic' : 'social')}
-                      className="px-4 py-2 border-2 border-bauhaus-border text-xs font-bold uppercase tracking-wider hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                    >
-                      Next &rarr;
-                    </button>
-                  )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    {activeTab !== 'personal' && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(activeTab === 'social' ? 'academic' : 'personal')}
+                        className="px-4 py-2.5 border-2 border-bauhaus-border text-xs font-bold uppercase tracking-wider hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back</span>
+                      </button>
+                    )}
+                    {activeTab !== 'social' && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(activeTab === 'personal' ? 'academic' : 'social')}
+                        className="px-4 py-2.5 border-2 border-bauhaus-border text-xs font-bold uppercase tracking-wider hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+                      >
+                        <span>Next</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
+
               </div>
 
             </form>

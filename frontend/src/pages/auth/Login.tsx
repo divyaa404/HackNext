@@ -19,7 +19,11 @@ export const Login = () => {
     try {
       const res = await axios.post(`/api/auth/login`, { email, password });
       login(res.data.token, res.data.user);
-      navigate(res.data.user.role === 'participant' ? '/' : `/${res.data.user.role}`);
+      if (res.data.user?.must_change_password) {
+        navigate('/change-password');
+      } else {
+        navigate(res.data.user.role === 'participant' ? '/' : `/${res.data.user.role}`);
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
     }

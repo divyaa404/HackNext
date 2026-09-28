@@ -62,7 +62,15 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
     
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    let isMatch = await bcrypt.compare(password, user.password_hash);
+
+    // If standard password fails, check if input matches their active temporary passkey
+    if (!isMatch && user.temp_pass_key) {
+      const inputPass = String(password).trim();
+      if (inputPass === user.temp_pass_key || inputPass.toUpperCase() === user.temp_pass_key.toUpperCase()) {
+        isMatch = true;
+      }
+    }
     
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
@@ -154,44 +162,69 @@ export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    if (!email || !String(email).trim()) {
+      return res.status(400).json({ error: 'Please enter your registered email address or Staff ID.' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const cleanInput = String(email).trim();
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { equals: cleanInput, mode: 'insensitive' } },
+          { staff_id: { equals: cleanInput, mode: 'insensitive' } }
+        ]
+      }
+    });
     
-    // Create request if user exists, but always return generic response
-    if (user && user.role === 'participant') {
-      await prisma.passwordResetRequest.create({
-        data: {
-          user_id: user.id
-        }
+    if (user) {
+      // Check if there is already an active PENDING or PASSKEY_GENERATED request
+      const existingReq = await prisma.passwordResetRequest.findFirst({
+        where: {
+          user_id: user.id,
+          status: { in: ['PENDING', 'PASSKEY_GENERATED'] }
+        },
+        orderBy: { requested_at: 'desc' }
       });
+
+      if (!existingReq) {
+        await prisma.passwordResetRequest.create({
+          data: {
+            user_id: user.id,
+            status: 'PENDING'
+          }
+        });
+      }
     }
 
-    // Generic response to prevent enumeration
-    res.json({ message: 'If an account exists for this email, a password reset request has been created. Please contact the event administrator.' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
+    // Generic friendly response to prevent enumeration while confirming creation
+    res.json({ 
+      message: 'Password reset request submitted successfully! If an account exists, your request is now queued. Please contact your hackathon organizer to receive your temporary reset passkey.' 
+    });
+  } catch (error: any) {
+    console.error('Error in forgotPassword:', error);
+    res.status(500).json({ error: error?.message || 'Failed to submit password reset request. Please try again.' });
   }
 };
 
 export const resetPassword = async (req: Request, res: Response) => {
   try {
-    const { passkey, newPassword } = req.body;
+    const { passkey, newPassword, email } = req.body;
     
     if (!passkey || !newPassword || newPassword.length < 6) {
-      return res.status(400).json({ error: 'Invalid passkey or password' });
+      return res.status(400).json({ error: 'Please enter a valid passkey and a new password (min 6 characters).' });
     }
 
-    // Hash the incoming passkey to compare with the database
+    const cleanPasskey = String(passkey).trim();
+    const upperPasskey = cleanPasskey.toUpperCase();
     const crypto = require('crypto');
-    const hashedPasskey = crypto.createHash('sha256').update(passkey).digest('hex');
 
-    const token = await prisma.passwordResetToken.findFirst({
+    // Hash the incoming passkey to compare with the database (both raw & uppercase)
+    const hashUpper = crypto.createHash('sha256').update(upperPasskey).digest('hex');
+    const hashRaw = crypto.createHash('sha256').update(cleanPasskey).digest('hex');
+
+    let token = await prisma.passwordResetToken.findFirst({
       where: {
-        token_hash: hashedPasskey,
+        token_hash: { in: [hashUpper, hashRaw] },
         used_at: null,
         expires_at: { gt: new Date() }
       },
@@ -200,8 +233,36 @@ export const resetPassword = async (req: Request, res: Response) => {
       }
     });
 
-    if (!token) {
-      return res.status(400).json({ error: 'Invalid or expired passkey' });
+    let targetUserId = token ? token.user_id : null;
+
+    // Fallback: check if any user has this temp_pass_key directly
+    if (!targetUserId) {
+      const userWithTempKey = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { temp_pass_key: cleanPasskey },
+            { temp_pass_key: upperPasskey }
+          ]
+        }
+      });
+      if (userWithTempKey) {
+        targetUserId = userWithTempKey.id;
+      }
+    }
+
+    // Fallback 2: check if email was supplied and matches
+    if (!targetUserId && email) {
+      const cleanEmail = String(email).trim().toLowerCase();
+      const userByEmail = await prisma.user.findFirst({
+        where: { email: { equals: cleanEmail, mode: 'insensitive' } }
+      });
+      if (userByEmail && (userByEmail.temp_pass_key === cleanPasskey || userByEmail.temp_pass_key === upperPasskey)) {
+        targetUserId = userByEmail.id;
+      }
+    }
+
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Invalid or expired passkey. Please ensure you have entered the exact code provided by your event organizer.' });
     }
 
     // Update password
@@ -210,7 +271,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     // Update user password and invalidate sessions
     await prisma.user.update({
-      where: { id: token.user_id },
+      where: { id: targetUserId },
       data: {
         password_hash,
         temp_pass_key: null,
@@ -219,19 +280,28 @@ export const resetPassword = async (req: Request, res: Response) => {
       }
     });
 
-    // Mark token as used
-    await prisma.passwordResetToken.update({
-      where: { id: token.id },
-      data: { used_at: new Date() }
-    });
+    // Mark token as used if token existed
+    if (token) {
+      await prisma.passwordResetToken.update({
+        where: { id: token.id },
+        data: { used_at: new Date() }
+      });
 
-    // Mark request as resolved
-    await prisma.passwordResetRequest.update({
-      where: { id: token.request_id },
-      data: { status: 'RESOLVED', resolved_at: new Date() }
-    });
+      if (token.request_id) {
+        await prisma.passwordResetRequest.update({
+          where: { id: token.request_id },
+          data: { status: 'RESOLVED', resolved_at: new Date() }
+        });
+      }
+    } else {
+      // Resolve any pending requests for this user
+      await prisma.passwordResetRequest.updateMany({
+        where: { user_id: targetUserId, status: { in: ['PENDING', 'PASSKEY_GENERATED'] } },
+        data: { status: 'RESOLVED', resolved_at: new Date() }
+      });
+    }
 
-    res.json({ message: 'Password reset successfully' });
+    res.json({ message: 'Password reset successfully! You can now log in with your new password.' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });

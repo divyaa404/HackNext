@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Users, Key, AlertTriangle, Clock } from 'lucide-react';
+import { Users, Key, AlertTriangle, Clock, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getRegistrationStatus, EventWithTimeline, RegistrationStatus } from '../../utils/timeline';
 
 export const JoinTeam = () => {
@@ -13,6 +13,10 @@ export const JoinTeam = () => {
   const [teamsLoading, setTeamsLoading] = useState(true);
   const [eventData, setEventData] = useState<EventWithTimeline | null>(null);
   const [myTeam, setMyTeam] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchTeamsAndEvent();
@@ -92,7 +96,18 @@ export const JoinTeam = () => {
     }
   };
 
-  const maxTeamSize = eventData?.team_size_max || 4;
+  // Filter teams based on search query
+  const filteredTeams = teams.filter((team: any) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const teamName = team.name?.toLowerCase() || '';
+    const leaderName = team.members?.[0]?.user?.name?.toLowerCase() || '';
+    const leaderEmail = team.members?.[0]?.user?.email?.toLowerCase() || '';
+    return teamName.includes(q) || leaderName.includes(q) || leaderEmail.includes(q);
+  });
+
+  const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE) || 1;
+  const paginatedTeams = filteredTeams.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
@@ -191,76 +206,157 @@ export const JoinTeam = () => {
         {/* Existing Teams List */}
         <div className="lg:col-span-2">
           <div className="bauhaus-card p-4 md:p-8 bg-bauhaus-card border-bauhaus-border">
-            <div className="flex items-center gap-4 mb-8">
-              <Users className="w-10 h-10 text-bauhaus-primary" />
-              <h2 className="text-2xl md:text-3xl font-black text-bauhaus-text uppercase tracking-tighter">Existing Teams</h2>
+            
+            {/* Header & Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <Users className="w-8 h-8 text-bauhaus-primary shrink-0" />
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-black text-bauhaus-text uppercase tracking-tighter">Existing Teams</h2>
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                    {filteredTeams.length} {filteredTeams.length === 1 ? 'team' : 'teams'} registered
+                  </p>
+                </div>
+              </div>
+
+              {/* Search input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search team or leader..."
+                  className="w-full pl-9 pr-8 py-2 border-2 border-bauhaus-border bg-bauhaus-bg text-bauhaus-text font-bold text-xs focus:outline-none focus:border-bauhaus-primary placeholder:text-zinc-400"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400 hover:text-black dark:hover:text-white px-1"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
 
             {teamsLoading ? (
               <div className="text-center font-bold tracking-widest uppercase py-8">Loading teams...</div>
-            ) : teams.length === 0 ? (
-              <div className="text-center font-bold tracking-widest uppercase py-8 text-gray-500 dark:text-gray-400">No teams found.</div>
+            ) : filteredTeams.length === 0 ? (
+              <div className="text-center font-bold tracking-widest uppercase py-8 text-gray-500 dark:text-gray-400">
+                {searchQuery ? `No teams matching "${searchQuery}"` : 'No teams found.'}
+              </div>
             ) : (
               <div className="space-y-4">
-                {teams.map((team: any) => {
-                  const leader = team.members[0]?.user;
-                  const memberCount = team.members.length;
-                  const isFull = memberCount >= maxTeamSize;
-                  const isUserInThisTeam = myTeam?.id === team.id;
+                <div className="space-y-3">
+                  {paginatedTeams.map((team: any) => {
+                    const leader = team.members[0]?.user;
+                    const memberCount = team.members.length;
+                    const teamMax = team.event?.team_size_max ?? eventData?.team_size_max ?? 4;
+                    const isFull = memberCount >= teamMax;
+                    const isUserInThisTeam = myTeam?.id === team.id;
 
-                  return (
-                    <div key={team.id} className="border-4 border-bauhaus-border p-4 flex flex-col md:flex-row justify-between items-center bg-bauhaus-bg hover:bg-gray-200 dark:bg-gray-800 transition-colors">
-                      <div className="mb-4 md:mb-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-black uppercase tracking-widest">{team.name}</h3>
-                          {isUserInThisTeam && (
-                            <span className="bg-black text-white text-[10px] font-black uppercase px-2 py-0.5">Your Team</span>
-                          )}
-                          {isFull && !isUserInThisTeam && (
-                            <span className="bg-red-500 text-white text-[10px] font-black uppercase px-2 py-0.5">Full</span>
-                          )}
+                    return (
+                      <div key={team.id} className="border-4 border-bauhaus-border p-4 flex flex-col md:flex-row justify-between items-center bg-bauhaus-bg hover:bg-gray-200 dark:bg-gray-800 transition-colors gap-3">
+                        <div className="mb-2 md:mb-0 w-full md:w-auto">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg md:text-xl font-black uppercase tracking-widest truncate">{team.name}</h3>
+                            {isUserInThisTeam && (
+                              <span className="bg-black text-white text-[10px] font-black uppercase px-2 py-0.5">Your Team</span>
+                            )}
+                            {isFull && !isUserInThisTeam && (
+                              <span className="bg-red-500 text-white text-[10px] font-black uppercase px-2 py-0.5">Full</span>
+                            )}
+                          </div>
+                          <p className="font-bold text-xs md:text-sm text-gray-700 dark:text-gray-300">
+                            Leader: <span className="text-bauhaus-primary font-black">{leader?.name || 'Unknown'}</span>
+                          </p>
+                          <p className="font-bold text-xs md:text-sm text-gray-700 dark:text-gray-300">
+                            Members: {memberCount} / {teamMax}
+                          </p>
                         </div>
-                        <p className="font-bold text-gray-700 dark:text-gray-300">Leader: <span className="text-bauhaus-primary">{leader?.name || 'Unknown'}</span></p>
-                        <p className="font-bold text-gray-700 dark:text-gray-300">Members: {memberCount} / {maxTeamSize}</p>
+
+                        <button 
+                          disabled={loading || !regStatus.isOpen || !!myTeam || isFull}
+                          onClick={async () => {
+                            if (myTeam) {
+                              setError(`You are already a member of team "${myTeam.name}".`);
+                              return;
+                            }
+                            if (!regStatus.isOpen) {
+                              setError(regStatus.message);
+                              return;
+                            }
+                            setLoading(true);
+                            try {
+                              await axios.post('/api/teams/request-join', { team_id: team.id }, {
+                                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                              });
+                              setError('Join request sent to the team leader!');
+                            } catch (err: any) {
+                              setError(err.response?.data?.error || 'Failed to send request');
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="bauhaus-button py-2 px-5 text-xs uppercase tracking-wider w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        >
+                          {isUserInThisTeam
+                            ? 'Current Team'
+                            : isFull
+                            ? 'Team Full'
+                            : myTeam
+                            ? 'In Another Team'
+                            : !regStatus.isOpen
+                            ? 'Registration Closed'
+                            : 'Request to Join'}
+                        </button>
                       </div>
-                      <button 
-                        disabled={loading || !regStatus.isOpen || !!myTeam || isFull}
-                        onClick={async () => {
-                          if (myTeam) {
-                            setError(`You are already a member of team "${myTeam.name}".`);
-                            return;
-                          }
-                          if (!regStatus.isOpen) {
-                            setError(regStatus.message);
-                            return;
-                          }
-                          setLoading(true);
-                          try {
-                            await axios.post('/api/teams/request-join', { team_id: team.id }, {
-                              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                            });
-                            setError('Join request sent to the team leader!');
-                          } catch (err: any) {
-                            setError(err.response?.data?.error || 'Failed to send request');
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        className="bauhaus-button py-2 px-6 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    );
+                  })}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="pt-4 border-t-2 border-bauhaus-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <span className="font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider text-[11px]">
+                      Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredTeams.length)} of {filteredTeams.length} teams
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className="p-2 border-2 border-bauhaus-border font-black bg-white dark:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        title="Previous Page"
                       >
-                        {isUserInThisTeam
-                          ? 'Current Team'
-                          : isFull
-                          ? 'Team Full'
-                          : myTeam
-                          ? 'In Another Team'
-                          : !regStatus.isOpen
-                          ? 'Registration Closed'
-                          : 'Request to Join'}
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      <span className="px-3 py-1.5 border-2 border-bauhaus-border font-black text-xs bg-bauhaus-primary text-white">
+                        {currentPage} / {totalPages}
+                      </span>
+
+                      <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className="p-2 border-2 border-bauhaus-border font-black bg-white dark:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        title="Next Page"
+                      >
+                        <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             )}
           </div>

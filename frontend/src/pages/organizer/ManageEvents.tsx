@@ -24,13 +24,20 @@ export const ManageEvents = () => {
             </p>
           </div>
 
-          <Link
-            to="/organizer/events/new"
-            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.2)] flex items-center gap-2 transition hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <PlusSquare className="w-4 h-4" />
-            <span>Create New Event</span>
-          </Link>
+          {events.length === 0 ? (
+            <Link
+              to="/organizer/events/new"
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_rgba(255,255,255,0.2)] flex items-center gap-2 transition hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <PlusSquare className="w-4 h-4" />
+              <span>Create Event</span>
+            </Link>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 font-mono text-xs font-black text-zinc-700 dark:text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Single Event Platform Mode</span>
+            </div>
+          )}
         </div>
       </div>
 

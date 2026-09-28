@@ -110,6 +110,11 @@ router.post('/', requireAuth, requireRole('participant'), upload.single('pdf'), 
           submitted_at: new Date()
         }
       });
+      // Clear alert on team
+      await prisma.team.update({
+        where: { id: team.id },
+        data: { submission_alert: null }
+      });
       return res.json(updated);
     } else {
       const created = await prisma.submission.create({
@@ -124,6 +129,11 @@ router.post('/', requireAuth, requireRole('participant'), upload.single('pdf'), 
           status: 'submitted',
           submitted_at: new Date()
         }
+      });
+      // Clear alert on team
+      await prisma.team.update({
+        where: { id: team.id },
+        data: { submission_alert: null }
       });
       return res.json(created);
     }
@@ -409,6 +419,159 @@ router.get('/all', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+});
+
+// Get remaining teams pending submission (for admin & organizer)
+router.get('/pending-teams', requireAuth, requireRole('organizer', 'admin'), async (req, res) => {
+  try {
+    const { event_id } = req.query;
+
+    let targetEventId: string | undefined = typeof event_id === 'string' && event_id ? event_id : undefined;
+    if (!targetEventId) {
+      const latestEvent = await prisma.event.findFirst({ orderBy: { start_date: 'desc' } });
+      if (latestEvent) {
+        targetEventId = latestEvent.id;
+      }
+    }
+
+    const eventFilter = targetEventId ? { event_id: targetEventId } : {};
+
+    // Get all teams in this event with members and submissions
+    const allTeams = await prisma.team.findMany({
+      where: eventFilter,
+      include: {
+        event: {
+          select: { id: true, name: true, start_date: true, end_date: true, team_size_min: true, team_size_max: true }
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, phone: true, college: true }
+            }
+          },
+          orderBy: { id: 'asc' }
+        },
+        submissions: {
+          select: { id: true, title: true, status: true, submitted_at: true }
+        }
+      },
+      orderBy: { id: 'desc' }
+    });
+
+    const pendingTeams = allTeams.filter(t => {
+      const hasCompletedSubmission = t.submissions.some(s => s.status === 'submitted');
+      return !hasCompletedSubmission;
+    });
+
+    const submittedTeamsCount = allTeams.length - pendingTeams.length;
+
+    res.json({
+      pendingTeams,
+      stats: {
+        totalTeams: allTeams.length,
+        submittedTeams: submittedTeamsCount,
+        pendingTeams: pendingTeams.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching pending submission teams:', error);
+    res.status(500).json({ error: 'Failed to fetch pending submission teams' });
+  }
+});
+
+// Notify a specific team to submit fast
+router.post('/notify-pending/:teamId', requireAuth, requireRole('organizer', 'admin'), async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const { message } = req.body;
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: {
+        submissions: true,
+        members: { include: { user: { select: { email: true, name: true } } } }
+      }
+    });
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    const alertMessage = message && typeof message === 'string' && message.trim()
+      ? message.trim()
+      : '⚠️ URGENT: The organizers request that your team submit your project fast before the deadline closes!';
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        submission_alert: alertMessage,
+        last_notified_at: new Date()
+      }
+    });
+
+    res.json({
+      message: `Alert sent successfully to team "${team.name}"!`,
+      team: {
+        id: updated.id,
+        name: updated.name,
+        submission_alert: updated.submission_alert,
+        last_notified_at: updated.last_notified_at
+      }
+    });
+  } catch (error) {
+    console.error('Error notifying team:', error);
+    res.status(500).json({ error: 'Failed to send alert to team' });
+  }
+});
+
+// Notify all remaining pending teams in an event
+router.post('/notify-all-pending', requireAuth, requireRole('organizer', 'admin'), async (req, res) => {
+  try {
+    const { event_id, message } = req.body;
+
+    let targetEventId: string | undefined = event_id;
+    if (!targetEventId) {
+      const latestEvent = await prisma.event.findFirst({ orderBy: { start_date: 'desc' } });
+      if (latestEvent) {
+        targetEventId = latestEvent.id;
+      }
+    }
+
+    const eventFilter = targetEventId ? { event_id: targetEventId } : {};
+
+    const teams = await prisma.team.findMany({
+      where: eventFilter,
+      include: { submissions: true }
+    });
+
+    const pendingTeamIds = teams
+      .filter(t => !t.submissions.some(s => s.status === 'submitted'))
+      .map(t => t.id);
+
+    if (pendingTeamIds.length === 0) {
+      return res.json({ message: 'All teams have already submitted their projects!', count: 0 });
+    }
+
+    const alertMessage = message && typeof message === 'string' && message.trim()
+      ? message.trim()
+      : '⚠️ URGENT: The organizers request that your team submit your project fast before the deadline closes!';
+
+    const updateResult = await prisma.team.updateMany({
+      where: { id: { in: pendingTeamIds } },
+      data: {
+        submission_alert: alertMessage,
+        last_notified_at: new Date()
+      }
+    });
+
+    res.json({
+      message: `Successfully notified ${updateResult.count} pending team(s) to submit!`,
+      count: updateResult.count
+    });
+  } catch (error) {
+    console.error('Error notifying all pending teams:', error);
+    res.status(500).json({ error: 'Failed to notify pending teams' });
   }
 });
 

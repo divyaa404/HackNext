@@ -16,9 +16,9 @@ export const ChangePassword = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate('/admin/login');
+      navigate('/login');
     } else if (!user.must_change_password) {
-      navigate(`/${user.role}`);
+      navigate(user.role === 'participant' ? '/' : `/${user.role}`);
     }
   }, [user, navigate]);
 
@@ -31,8 +31,8 @@ export const ChangePassword = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
       return;
     }
 
@@ -44,7 +44,7 @@ export const ChangePassword = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       updateUser({ must_change_password: false });
-      navigate(`/${user?.role}`);
+      navigate(user?.role === 'participant' ? '/' : `/${user?.role}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to update password');
     } finally {
@@ -74,10 +74,10 @@ export const ChangePassword = () => {
         </div>
 
         <h1 className="text-2xl font-black text-center text-zinc-900 dark:text-white mb-2 uppercase tracking-tight">
-          First-Time Setup
+          Set New Password
         </h1>
         <p className="text-xs text-center text-zinc-600 dark:text-zinc-400 mb-6 font-medium">
-          You are using a temporary credential. Please create a permanent password to secure your account.
+          You are using a temporary credential or reset passkey. Please create a permanent password to secure your account.
         </p>
 
         {/* Current Account Details */}
@@ -86,9 +86,9 @@ export const ChangePassword = () => {
             Account Identified
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-bold text-xs text-zinc-900 dark:text-white">{user.name || 'Staff User'}</span>
+            <span className="font-bold text-xs text-zinc-900 dark:text-white">{user.name || user.email}</span>
             <span className="font-mono text-xs text-red-600 dark:text-red-400 font-black bg-red-50 dark:bg-red-950 px-2 py-0.5 border border-red-300 dark:border-red-800 rounded">
-              {user.staff_id}
+              {user.staff_id || user.role.toUpperCase()}
             </span>
           </div>
         </div>

@@ -16,7 +16,8 @@ import {
   ArrowRight,
   Lock,
   Eye,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { getSubmissionStatus, SubmissionStatus } from '../../utils/timeline';
 import { AuthContext } from '../../context/AuthContext';
@@ -161,6 +162,41 @@ export const TeamDetails = () => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
       
+      {/* Urgent Organizer Submission Alert */}
+      {team?.submission_alert && !submission && (
+        <div className="p-5 rounded-xl border-4 border-red-600 bg-red-600 text-white shadow-[8px_8px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_rgba(255,255,255,0.2)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-start space-x-4">
+            <AlertTriangle className="w-8 h-8 text-amber-300 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-black text-amber-300 font-mono text-[10px] font-black uppercase tracking-wider rounded">
+                  🚨 Urgent Organizer Alert
+                </span>
+                {team.last_notified_at && (
+                  <span className="text-[11px] text-red-100 font-bold">
+                    Sent {new Date(team.last_notified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+              <h3 className="font-black uppercase tracking-tight text-lg text-white">
+                Submission Required: Please Submit Your Project Fast!
+              </h3>
+              <p className="text-sm font-bold leading-relaxed text-red-100">
+                {team.submission_alert}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/participant/submission"
+            className="px-6 py-3 bg-black text-white hover:bg-zinc-800 font-black text-xs uppercase tracking-wider border-2 border-white shadow-[3px_3px_0px_rgba(0,0,0,1)] shrink-0 flex items-center gap-2 transition"
+          >
+            <span>Submit Project Now</span>
+            <ArrowRight className="w-4 h-4 text-amber-400" />
+          </Link>
+        </div>
+      )}
+
       {/* Header Banner: Responsive Landscape Card */}
       <div className="bauhaus-card overflow-hidden bg-bauhaus-card border-4 border-bauhaus-border shadow-[8px_8px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_rgba(255,255,255,0.2)]">
         

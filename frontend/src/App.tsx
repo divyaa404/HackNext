@@ -48,6 +48,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin/login" element={<StaffLogin />} />
           <Route path="/admin/change-password" element={<ChangePassword />} />
+          <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/invite/:token" element={<JudgeAcceptInvite />} />
 
           {/* Public Certificate Verification Routes */}

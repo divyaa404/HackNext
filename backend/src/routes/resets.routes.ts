@@ -33,9 +33,9 @@ router.post('/:id/generate', requireAuth, requireRole('admin', 'organizer'), asy
 
     // Generate random passkey
     const rawPasskey = `RST-${crypto.randomBytes(2).toString('hex').toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-    const tokenHash = crypto.createHash('sha256').update(rawPasskey).digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawPasskey.trim().toUpperCase()).digest('hex');
 
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
 
     await prisma.$transaction([
       prisma.passwordResetToken.create({
@@ -50,6 +50,13 @@ router.post('/:id/generate', requireAuth, requireRole('admin', 'organizer'), asy
       prisma.passwordResetRequest.update({
         where: { id },
         data: { status: 'PASSKEY_GENERATED' }
+      }),
+      prisma.user.update({
+        where: { id: request.user_id },
+        data: {
+          temp_pass_key: rawPasskey,
+          must_change_password: true
+        }
       })
     ]);
 
