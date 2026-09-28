@@ -9,45 +9,60 @@ export const CreateTeam = () => {
   const [name, setName] = useState('');
   const [eventId, setEventId] = useState('');
   const [eventData, setEventData] = useState<EventWithTimeline | null>(null);
+  const [myTeam, setMyTeam] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
       try {
-        const res = await axios.get(`/api/events`, { headers: authHeaders });
-        const events = Array.isArray(res.data)
-          ? res.data
-          : res.data?.events || res.data?.data || [];
+        const [eventsRes, teamRes] = await Promise.allSettled([
+          axios.get(`/api/events`, { headers: authHeaders }),
+          axios.get(`/api/teams/my-team`, { headers: authHeaders })
+        ]);
 
-        console.log('Events loaded:', events);
+        if (eventsRes.status === 'fulfilled') {
+          const res = eventsRes.value;
+          const events = Array.isArray(res.data)
+            ? res.data
+            : res.data?.events || res.data?.data || [];
 
-        if (events.length > 0) {
-          const latest = events[events.length - 1];
-          const id = latest.id ?? latest._id ?? latest.event_id;
-          if (id) setEventId(String(id));
-          setEventData(latest);
-        } else {
-          console.warn('No events found in DB.');
+          if (events.length > 0) {
+            const latest = events[0];
+            const id = latest.id ?? latest._id ?? latest.event_id;
+            if (id) setEventId(String(id));
+            setEventData(latest);
+          } else {
+            setEventData(null);
+          }
+        }
+
+        if (teamRes.status === 'fulfilled' && teamRes.value.data) {
+          setMyTeam(teamRes.value.data);
         }
       } catch (err) {
-        console.error('Failed to load events:', err);
+        console.error('Failed to load data:', err);
       } finally {
         setEventsLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchData();
   }, []);
 
   const regStatus: RegistrationStatus = getRegistrationStatus(eventData);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (myTeam) {
+      setError(`You are already a member of team "${myTeam.name}". You cannot create another team.`);
+      return;
+    }
 
     if (!regStatus.isOpen) {
       setError(regStatus.message);
@@ -110,7 +125,30 @@ export const CreateTeam = () => {
           Create Your Team
         </h2>
 
-        {!eventsLoading && !regStatus.isOpen && (
+        {!eventsLoading && myTeam && (
+          <div className="mb-6 p-5 border-4 border-black bg-cyan-300 text-black shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-start gap-3">
+              <Users className="w-6 h-6 shrink-0 text-black mt-0.5" />
+              <div className="flex-1">
+                <p className="font-black uppercase tracking-wider text-sm">
+                  You already belong to a team!
+                </p>
+                <p className="text-sm font-bold mt-1 text-zinc-900">
+                  You are currently a member of <span className="underline font-black">"{myTeam.name}"</span>. Participants can only belong to one team per hackathon event.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/participant/team')}
+                  className="mt-3 inline-block bg-black text-white font-black uppercase text-xs tracking-widest px-4 py-2 border-2 border-black hover:bg-white hover:text-black transition-colors"
+                >
+                  Go to My Team Workspace &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!eventsLoading && !myTeam && !regStatus.isOpen && (
           <div className="mb-6 p-4 border-4 border-black bg-yellow-300 text-black flex items-start gap-3 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
             {regStatus.isClosed ? (
               <AlertTriangle className="w-6 h-6 shrink-0 text-red-600 mt-0.5" />
@@ -143,7 +181,7 @@ export const CreateTeam = () => {
               type="text"
               required
               maxLength={50}
-              disabled={!regStatus.isOpen}
+              disabled={!regStatus.isOpen || !!myTeam}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. CODE NINJAS"
@@ -153,11 +191,13 @@ export const CreateTeam = () => {
 
           <button
             type="submit"
-            disabled={loading || eventsLoading || !regStatus.isOpen}
+            disabled={loading || eventsLoading || !regStatus.isOpen || !!myTeam}
             className="bauhaus-button w-full py-4 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {eventsLoading
               ? 'Loading...'
+              : myTeam
+              ? 'Already in a Team'
               : loading
               ? 'Creating...'
               : !regStatus.isOpen

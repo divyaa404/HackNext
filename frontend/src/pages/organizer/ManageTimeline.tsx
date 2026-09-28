@@ -325,8 +325,10 @@ export const ManageTimeline = () => {
                     value={toLocalInput(item.start_datetime)}
                     onChange={(e) => {
                       if (!e.target.value) return;
+                      const d = new Date(e.target.value);
+                      if (isNaN(d.getTime())) return;
                       const n = [...timeline];
-                      n[idx].start_datetime = new Date(e.target.value).toISOString();
+                      n[idx].start_datetime = d.toISOString();
                       setTimeline(n);
                     }}
                     className="w-full p-2.5 border-2 border-black dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 font-bold text-sm"
@@ -343,7 +345,14 @@ export const ManageTimeline = () => {
                     value={toLocalInput(item.end_datetime)}
                     onChange={(e) => {
                       const n = [...timeline];
-                      n[idx].end_datetime = e.target.value ? new Date(e.target.value).toISOString() : null;
+                      if (!e.target.value) {
+                        n[idx].end_datetime = null;
+                      } else {
+                        const d = new Date(e.target.value);
+                        if (!isNaN(d.getTime())) {
+                          n[idx].end_datetime = d.toISOString();
+                        }
+                      }
                       setTimeline(n);
                     }}
                     className="w-full p-2.5 border-2 border-black dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 font-bold text-sm"

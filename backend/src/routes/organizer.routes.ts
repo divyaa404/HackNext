@@ -71,11 +71,27 @@ router.all(['/events/:id', '/events/:id/certificates/toggle'], async (req, res, 
 
     // Convert date strings to Date objects if provided
     if (updateData.start_date) {
-      updateData.start_date = new Date(updateData.start_date);
+      const parsedStart = new Date(updateData.start_date);
+      if (!isNaN(parsedStart.getTime())) {
+        updateData.start_date = parsedStart;
+      } else {
+        delete updateData.start_date;
+      }
+    } else if (updateData.start_date === '') {
+      delete updateData.start_date;
     }
+
     if (updateData.end_date) {
-      updateData.end_date = new Date(updateData.end_date);
+      const parsedEnd = new Date(updateData.end_date);
+      if (!isNaN(parsedEnd.getTime())) {
+        updateData.end_date = parsedEnd;
+      } else {
+        delete updateData.end_date;
+      }
+    } else if (updateData.end_date === '') {
+      delete updateData.end_date;
     }
+
     if (updateData.team_size_min !== undefined) {
       updateData.team_size_min = updateData.team_size_min !== null && updateData.team_size_min !== '' ? parseInt(updateData.team_size_min, 10) : null;
     }
@@ -89,7 +105,7 @@ router.all(['/events/:id', '/events/:id/certificates/toggle'], async (req, res, 
     });
     res.json(updated);
   } catch (error: any) {
-    console.error(error);
+    console.error('Error updating event:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -126,15 +142,28 @@ router.put('/events/:id/content/:type', async (req, res) => {
         await tx.timelineItem.deleteMany({ where: { event_id: eventId } });
         if (items.length) {
           await tx.timelineItem.createMany({ 
-            data: items.map((i: any, idx: number) => ({ 
-              title: i.title,
-              description: i.description || null,
-              start_datetime: new Date(i.start_datetime),
-              end_datetime: i.end_datetime ? new Date(i.end_datetime) : null,
-              status: i.status || null,
-              sort_order: idx + 1,
-              event_id: eventId 
-            })) 
+            data: items.map((i: any, idx: number) => {
+              let startDt = new Date(i.start_datetime);
+              if (isNaN(startDt.getTime())) {
+                startDt = event.start_date ? new Date(event.start_date) : new Date();
+              }
+              let endDt: Date | null = null;
+              if (i.end_datetime) {
+                const parsedEnd = new Date(i.end_datetime);
+                if (!isNaN(parsedEnd.getTime())) {
+                  endDt = parsedEnd;
+                }
+              }
+              return {
+                title: i.title ? String(i.title).trim() : `Round ${idx + 1}`,
+                description: i.description || null,
+                start_datetime: startDt,
+                end_datetime: endDt,
+                status: i.status || null,
+                sort_order: idx + 1,
+                event_id: eventId 
+              };
+            }) 
           });
         }
       } else if (type === 'contacts') {

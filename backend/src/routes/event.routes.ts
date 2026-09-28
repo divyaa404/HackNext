@@ -94,7 +94,8 @@ router.get('/', async (req, res) => {
       include: {
         creator: { select: { email: true } },
         timeline_items: { orderBy: { sort_order: 'asc' } }
-      }
+      },
+      orderBy: { start_date: 'desc' }
     });
     res.json(events);
   } catch (error) {
@@ -137,6 +138,10 @@ router.get('/:id/organizer-details', requireAuth, requireRole('organizer', 'admi
         },
         timeline_items: { orderBy: { sort_order: 'asc' } },
         rubrics: { orderBy: { sort_order: 'asc' } },
+        rules: { orderBy: { sort_order: 'asc' } },
+        prizes: { orderBy: { sort_order: 'asc' } },
+        eligibility_items: { orderBy: { sort_order: 'asc' } },
+        admin_contacts: { orderBy: { sort_order: 'asc' } },
         certificates: true
       }
     });

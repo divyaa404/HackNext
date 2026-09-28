@@ -100,36 +100,11 @@ export const EventDetails = () => {
       setMinTeamSize(response.data.team_size_min !== undefined && response.data.team_size_min !== null ? response.data.team_size_min : 1);
       setMaxTeamSize(response.data.team_size_max !== undefined && response.data.team_size_max !== null ? response.data.team_size_max : 4);
       
-      const pubRes = await api.get(`/public/events/${response.data.slug || 'hacknext-72-hour-hackathon'}/public`);
-      setPrizes(pubRes.data.prizes || []);
-      setRules(pubRes.data.rules || []);
-      setEligibility(pubRes.data.eligibility_items || []);
-      
-      const loadedTimeline = pubRes.data.timeline_items || [];
-      if (loadedTimeline.length === 0 && response.data) {
-        const startDt = response.data.start_date || new Date().toISOString();
-        const endDt = response.data.end_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-        setTimeline([
-          {
-            title: 'Registration',
-            description: 'Team registration and team formation period',
-            start_datetime: startDt,
-            end_datetime: endDt,
-            sort_order: 1
-          },
-          {
-            title: 'Submission',
-            description: 'Project and demo video submission period',
-            start_datetime: startDt,
-            end_datetime: endDt,
-            sort_order: 2
-          }
-        ]);
-      } else {
-        setTimeline(loadedTimeline);
-      }
-
-      setContacts(pubRes.data.admin_contacts || []);
+      setPrizes(response.data.prizes || []);
+      setRules(response.data.rules || []);
+      setEligibility(response.data.eligibility_items || []);
+      setTimeline(response.data.timeline_items || []);
+      setContacts(response.data.admin_contacts || []);
 
       const adminsRes = await api.get('/organizer/users/admins');
       setAvailableAdmins(adminsRes.data || []);
@@ -149,10 +124,12 @@ export const EventDetails = () => {
     data.team_size_min = data.team_size_min ? parseInt(data.team_size_min, 10) : null;
     data.team_size_max = data.team_size_max ? parseInt(data.team_size_max, 10) : null;
     if (data.start_date) {
-      data.start_date = new Date(data.start_date).toISOString();
+      const parsedStart = new Date(data.start_date);
+      data.start_date = !isNaN(parsedStart.getTime()) ? parsedStart.toISOString() : undefined;
     }
     if (data.end_date) {
-      data.end_date = new Date(data.end_date).toISOString();
+      const parsedEnd = new Date(data.end_date);
+      data.end_date = !isNaN(parsedEnd.getTime()) ? parsedEnd.toISOString() : undefined;
     }
     setIsSaving(true);
     try {
@@ -172,6 +149,7 @@ export const EventDetails = () => {
     try {
       await api.put(`/organizer/events/${id}/content/${type}`, { items });
       showToast(`${type} updated successfully!`, 'success');
+      await loadEventDetails();
     } catch (error) {
       showToast(`Failed to update ${type}`, 'error');
     } finally {
@@ -189,10 +167,12 @@ export const EventDetails = () => {
         data.team_size_min = data.team_size_min ? parseInt(data.team_size_min, 10) : null;
         data.team_size_max = data.team_size_max ? parseInt(data.team_size_max, 10) : null;
         if (data.start_date) {
-          data.start_date = new Date(data.start_date).toISOString();
+          const parsedStart = new Date(data.start_date);
+          data.start_date = !isNaN(parsedStart.getTime()) ? parsedStart.toISOString() : undefined;
         }
         if (data.end_date) {
-          data.end_date = new Date(data.end_date).toISOString();
+          const parsedEnd = new Date(data.end_date);
+          data.end_date = !isNaN(parsedEnd.getTime()) ? parsedEnd.toISOString() : undefined;
         }
         await api.patch(`/organizer/events/${id}`, data);
       }
@@ -781,8 +761,10 @@ export const EventDetails = () => {
                           value={toLocalInputValue(item.start_datetime)} 
                           onChange={(e) => { 
                             if (!e.target.value) return;
+                            const d = new Date(e.target.value);
+                            if (isNaN(d.getTime())) return;
                             const n = [...timeline]; 
-                            n[idx].start_datetime = new Date(e.target.value).toISOString(); 
+                            n[idx].start_datetime = d.toISOString(); 
                             setTimeline(n); 
                           }} 
                           className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 
@@ -803,7 +785,14 @@ export const EventDetails = () => {
                           value={toLocalInputValue(item.end_datetime)} 
                           onChange={(e) => { 
                             const n = [...timeline]; 
-                            n[idx].end_datetime = e.target.value ? new Date(e.target.value).toISOString() : null; 
+                            if (!e.target.value) {
+                              n[idx].end_datetime = null;
+                            } else {
+                              const d = new Date(e.target.value);
+                              if (!isNaN(d.getTime())) {
+                                n[idx].end_datetime = d.toISOString();
+                              }
+                            }
                             setTimeline(n); 
                           }} 
                           className="w-full p-2 border-2 border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white text-sm focus:border-red-500 focus:outline-none" 

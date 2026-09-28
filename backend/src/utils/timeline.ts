@@ -9,10 +9,14 @@ export interface TimelineItem {
 }
 
 export interface EventWithTimeline {
-  id: string;
+  id?: string;
+  name?: string;
+  team_size_min?: number | null;
+  team_size_max?: number | null;
   start_date: Date | string;
   end_date: Date | string;
   timeline_items?: TimelineItem[];
+  [key: string]: any;
 }
 
 export interface RegistrationStatus {
@@ -36,10 +40,10 @@ export interface SubmissionStatus {
 export function checkRegistrationStatus(event: EventWithTimeline): RegistrationStatus {
   if (!event) {
     return {
-      isOpen: true,
-      isNotOpenYet: false,
+      isOpen: false,
+      isNotOpenYet: true,
       isClosed: false,
-      message: 'Registration is open.'
+      message: 'Registration is not open yet because no event has been created.'
     };
   }
 
@@ -49,14 +53,14 @@ export function checkRegistrationStatus(event: EventWithTimeline): RegistrationS
   // Find timeline milestone related to registration
   const regItem = items.find(it => {
     const t = (it.title || '').toLowerCase();
-    return t.includes('registration') || t.includes('register') || t.includes('sign up');
+    return t.includes('registration') || t.includes('register') || t.includes('sign up') || t.includes('team formation');
   });
 
   let opensAt: Date | undefined;
   let closesAt: Date | undefined;
 
   if (regItem) {
-    opensAt = new Date(regItem.start_datetime);
+    opensAt = regItem.start_datetime ? new Date(regItem.start_datetime) : undefined;
     if (regItem.end_datetime) {
       closesAt = new Date(regItem.end_datetime);
     } else {
@@ -70,25 +74,36 @@ export function checkRegistrationStatus(event: EventWithTimeline): RegistrationS
     closesAt = new Date(event.end_date || event.start_date);
   }
 
-  if (opensAt && !isNaN(opensAt.getTime()) && now < opensAt) {
+  // Ensure opensAt is valid, fallback to event.start_date
+  if ((!opensAt || isNaN(opensAt.getTime())) && event.start_date) {
+    opensAt = new Date(event.start_date);
+  }
+  // Ensure closesAt is valid, fallback to event.end_date
+  if ((!closesAt || isNaN(closesAt.getTime())) && event.end_date) {
+    closesAt = new Date(event.end_date);
+  }
+
+  // Check 1: Time has NOT started yet (now < opensAt)
+  if (opensAt && !isNaN(opensAt.getTime()) && now.getTime() < opensAt.getTime()) {
     return {
       isOpen: false,
       isNotOpenYet: true,
       isClosed: false,
       opensAt,
       closesAt,
-      message: `Registration opens on ${opensAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+      message: `Team registration has not started yet. Registration opens on ${opensAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
     };
   }
 
-  if (closesAt && !isNaN(closesAt.getTime()) && now > closesAt) {
+  // Check 2: Time has passed / registration closed (now > closesAt)
+  if (closesAt && !isNaN(closesAt.getTime()) && now.getTime() > closesAt.getTime()) {
     return {
       isOpen: false,
       isNotOpenYet: false,
       isClosed: true,
       opensAt,
       closesAt,
-      message: `Registration has closed. The deadline was ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+      message: `Team registration is closed. The deadline was ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
     };
   }
 
@@ -99,8 +114,8 @@ export function checkRegistrationStatus(event: EventWithTimeline): RegistrationS
     opensAt,
     closesAt,
     message: closesAt && !isNaN(closesAt.getTime())
-      ? `Registration is open until ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
-      : 'Registration is open.'
+      ? `Team registration is open until ${closesAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}.`
+      : 'Team registration is currently open.'
   };
 }
 

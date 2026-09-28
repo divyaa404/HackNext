@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -15,9 +15,11 @@ import {
   ShieldCheck, 
   ArrowRight,
   Lock,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
 import { getSubmissionStatus, SubmissionStatus } from '../../utils/timeline';
+import { AuthContext } from '../../context/AuthContext';
 
 const GithubIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -32,10 +34,14 @@ const LinkedinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 );
 
 export const TeamDetails = () => {
+  const { user } = useContext(AuthContext);
   const [team, setTeam] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchTeamAndRequests = async () => {
     try {
@@ -83,6 +89,24 @@ export const TeamDetails = () => {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const handleDeleteTeam = async () => {
+    if (!team) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await axios.delete(`/api/teams/${team.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setShowDeleteModal(false);
+      setTeam(null);
+    } catch (err: any) {
+      console.error('Failed to delete team', err);
+      setDeleteError(err.response?.data?.error || 'Failed to delete team');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
@@ -127,8 +151,10 @@ export const TeamDetails = () => {
     );
   }
 
+  // Check if current user is the team leader
+  const isLeader = Boolean(user && team.members && team.members.length > 0 && team.members[0].user_id === user.id);
   // Check if Event is Individual Participant (min=1, max=1)
-  const isSoloEvent = (team.event?.team_size_min === 1 && team.event?.team_size_max === 1) || team.members?.length === 1 && team.event?.team_size_max === 1;
+  const isSoloEvent = (team.event?.team_size_min === 1 && team.event?.team_size_max === 1) || (team.members?.length === 1 && team.event?.team_size_max === 1);
   const submission = team.submissions && team.submissions.length > 0 ? team.submissions[0] : null;
   const subStatus: SubmissionStatus = getSubmissionStatus(team.event);
 
@@ -157,8 +183,20 @@ export const TeamDetails = () => {
             </h1>
           </div>
 
-          {/* Quick Action Button for Submission */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Quick Actions */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {isLeader && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="bauhaus-button border-4 border-black text-xs font-black uppercase tracking-wider px-4 py-3 shadow-[4px_4px_0px_rgba(0,0,0,1)] bg-red-600 text-white hover:bg-red-700 flex items-center gap-2 transition-all"
+                title="Delete Team"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Team</span>
+              </button>
+            )}
+
             <Link
               to="/participant/submission"
               className={`bauhaus-button border-4 border-black text-xs font-black uppercase tracking-wider px-6 py-3 shadow-[4px_4px_0px_rgba(0,0,0,1)] flex items-center gap-2 ${
@@ -245,7 +283,7 @@ export const TeamDetails = () => {
         {/* Horizontal Responsive Grid for Members */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {team.members.map((m: any, idx: number) => {
-            const isLeader = idx === 0;
+            const isMemberLeader = idx === 0;
             const u = m.user;
             return (
               <div
@@ -259,7 +297,7 @@ export const TeamDetails = () => {
                       {u?.name?.[0]?.toUpperCase() || u?.email?.[0]?.toUpperCase() || 'P'}
                     </div>
 
-                    {isLeader && (
+                    {isMemberLeader && (
                       <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border-2 border-amber-300 text-[10px] font-black uppercase tracking-widest shadow-sm">
                         <Crown className="w-3.5 h-3.5 text-amber-600" />
                         <span>{isSoloEvent ? 'Participant' : 'Leader'}</span>
@@ -354,6 +392,82 @@ export const TeamDetails = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DANGER ZONE: DELETE TEAM (Leader Only)                                     */}
+      {/* ========================================================================= */}
+      {isLeader && (
+        <div className="bauhaus-card p-6 md:p-8 bg-red-50 dark:bg-red-950/30 border-4 border-red-600 shadow-[6px_6px_0px_rgba(220,38,38,1)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-black uppercase text-red-600 dark:text-red-400 flex items-center gap-2">
+              <Trash2 className="w-5 h-5 shrink-0" />
+              <span>Danger Zone: Disband Team</span>
+            </h3>
+            <p className="text-xs md:text-sm font-bold text-zinc-700 dark:text-zinc-300">
+              Permanently delete <span className="underline font-black">"{team.name}"</span>. All members will be removed and any associated project submissions will be deleted.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest px-6 py-3.5 border-2 border-black dark:border-white shadow-[4px_4px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-all shrink-0 flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete Team</span>
+          </button>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DELETE CONFIRMATION MODAL                                                 */}
+      {/* ========================================================================= */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bauhaus-card bg-white dark:bg-zinc-900 border-4 border-black dark:border-white p-6 md:p-8 max-w-md w-full shadow-[8px_8px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_rgba(255,255,255,1)]">
+            <div className="w-14 h-14 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 border-2 border-red-600 rounded-2xl flex items-center justify-center mb-5 shadow-sm">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <h3 className="text-2xl font-black uppercase tracking-tight text-zinc-900 dark:text-white mb-2">
+              Delete Team?
+            </h3>
+
+            <p className="text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
+              Are you sure you want to delete <span className="text-black dark:text-white font-black underline">"{team.name}"</span>? This action cannot be undone. All teammates will be unassigned, and your project submissions will be permanently removed.
+            </p>
+
+            {deleteError && (
+              <div className="p-3 mb-4 bg-red-100 dark:bg-red-900/50 border-2 border-red-600 text-red-700 dark:text-red-300 text-xs font-bold uppercase">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteError('');
+                }}
+                className="px-5 py-2.5 border-2 border-black dark:border-white font-black uppercase text-xs tracking-wider bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteTeam}
+                className="px-5 py-2.5 border-2 border-black dark:border-white font-black uppercase text-xs tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete Team'}
+              </button>
+            </div>
           </div>
         </div>
       )}

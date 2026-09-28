@@ -59,18 +59,33 @@ router.post('/create', requireAuth, requireRole('participant'), async (req, res)
       });
     }
 
+    event_id = validEvent.id;
+
+    // Check if user is ALREADY in a team (or leader of a team) for this event
+    const existingMembership = await prisma.teamMember.findFirst({
+      where: {
+        user_id: userId,
+        team: { event_id }
+      },
+      include: { team: true }
+    });
+
+    if (existingMembership) {
+      return res.status(400).json({
+        error: `You are already part of team "${existingMembership.team.name}". A participant cannot create or join multiple teams in the same event.`
+      });
+    }
+
     // Validate Registration Timeline
     const regStatus = checkRegistrationStatus(validEvent);
     if (!regStatus.isOpen) {
       return res.status(403).json({ 
-        error: regStatus.message || 'Registration has closed for this event.',
-        code: regStatus.isClosed ? 'REGISTRATION_CLOSED' : 'REGISTRATION_NOT_OPEN',
+        error: regStatus.message || (regStatus.isNotOpenYet ? 'Registration has not started yet.' : 'Registration has closed for this event.'),
+        code: regStatus.isNotOpenYet ? 'REGISTRATION_NOT_OPEN' : 'REGISTRATION_CLOSED',
         opensAt: regStatus.opensAt,
         closesAt: regStatus.closesAt
       });
     }
-
-    event_id = validEvent.id;
 
     let invite_code = generateInviteCode();
     // Ensure unique 6-digit code
@@ -116,7 +131,10 @@ router.post('/join', requireAuth, requireRole('participant'), async (req, res) =
 
     const team = await prisma.team.findUnique({ 
       where: { invite_code: invite_code.toUpperCase() },
-      include: { event: { include: { timeline_items: { orderBy: { sort_order: 'asc' } } } } }
+      include: { 
+        members: true,
+        event: { include: { timeline_items: { orderBy: { sort_order: 'asc' } } } } 
+      }
     });
     if (!team) {
       return res.status(404).json({ error: 'Team not found' });
@@ -127,24 +145,36 @@ router.post('/join', requireAuth, requireRole('participant'), async (req, res) =
       const regStatus = checkRegistrationStatus(team.event);
       if (!regStatus.isOpen) {
         return res.status(403).json({ 
-          error: regStatus.message || 'Registration has closed for this event.',
-          code: regStatus.isClosed ? 'REGISTRATION_CLOSED' : 'REGISTRATION_NOT_OPEN'
+          error: regStatus.message || (regStatus.isNotOpenYet ? 'Registration has not started yet.' : 'Registration has closed for this event.'),
+          code: regStatus.isNotOpenYet ? 'REGISTRATION_NOT_OPEN' : 'REGISTRATION_CLOSED',
+          opensAt: regStatus.opensAt,
+          closesAt: regStatus.closesAt
         });
       }
     }
 
-    // Check if already in this team
-    const existing = await prisma.teamMember.findUnique({
+    // Check if user is ALREADY in a team (or leader of a team) for this event
+    const existingMembership = await prisma.teamMember.findFirst({
       where: {
-        user_id_team_id: {
-          user_id: userId,
-          team_id: team.id
-        }
-      }
+        user_id: userId,
+        team: { event_id: team.event_id }
+      },
+      include: { team: true }
     });
 
-    if (existing) {
-      return res.status(400).json({ error: 'Already a member of this team' });
+    if (existingMembership) {
+      if (existingMembership.team_id === team.id) {
+        return res.status(400).json({ error: 'You are already a member of this team.' });
+      }
+      return res.status(400).json({ 
+        error: `You are already part of team "${existingMembership.team.name}". A participant cannot join multiple teams in the same event.` 
+      });
+    }
+
+    // Check max team capacity
+    const maxMembers = team.event?.team_size_max || 4;
+    if (team.members.length >= maxMembers) {
+      return res.status(400).json({ error: `This team is already full (maximum ${maxMembers} members allowed).` });
     }
 
     await prisma.teamMember.create({
@@ -260,13 +290,16 @@ router.post('/request-join', requireAuth, requireRole('participant'), async (req
     const userId = (req as any).user.id;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.name) {
+    if (!isProfileComplete(user)) {
       return res.status(400).json({ error: 'Please complete your profile first.', requiresProfile: true });
     }
 
     const team = await prisma.team.findUnique({ 
       where: { id: team_id },
-      include: { event: { include: { timeline_items: { orderBy: { sort_order: 'asc' } } } } }
+      include: { 
+        members: true,
+        event: { include: { timeline_items: { orderBy: { sort_order: 'asc' } } } } 
+      }
     });
     if (!team) return res.status(404).json({ error: 'Team not found' });
 
@@ -275,17 +308,37 @@ router.post('/request-join', requireAuth, requireRole('participant'), async (req
       const regStatus = checkRegistrationStatus(team.event);
       if (!regStatus.isOpen) {
         return res.status(403).json({ 
-          error: regStatus.message || 'Registration has closed for this event.',
-          code: regStatus.isClosed ? 'REGISTRATION_CLOSED' : 'REGISTRATION_NOT_OPEN'
+          error: regStatus.message || (regStatus.isNotOpenYet ? 'Registration has not started yet.' : 'Registration has closed for this event.'),
+          code: regStatus.isNotOpenYet ? 'REGISTRATION_NOT_OPEN' : 'REGISTRATION_CLOSED',
+          opensAt: regStatus.opensAt,
+          closesAt: regStatus.closesAt
         });
       }
     }
 
-    // Check if already in team
-    const member = await prisma.teamMember.findUnique({
-      where: { user_id_team_id: { user_id: userId, team_id } }
+    // Check if user is ALREADY in a team for this event
+    const existingMembership = await prisma.teamMember.findFirst({
+      where: {
+        user_id: userId,
+        team: { event_id: team.event_id }
+      },
+      include: { team: true }
     });
-    if (member) return res.status(400).json({ error: 'Already a member of this team' });
+
+    if (existingMembership) {
+      if (existingMembership.team_id === team.id) {
+        return res.status(400).json({ error: 'You are already a member of this team.' });
+      }
+      return res.status(400).json({ 
+        error: `You are already part of team "${existingMembership.team.name}". A participant cannot join multiple teams in the same event.` 
+      });
+    }
+
+    // Check max team capacity
+    const maxMembers = team.event?.team_size_max || 4;
+    if (team.members.length >= maxMembers) {
+      return res.status(400).json({ error: `This team is already full (maximum ${maxMembers} members allowed).` });
+    }
 
     // Check if already requested
     const existingReq = await prisma.joinRequest.findUnique({
@@ -351,14 +404,33 @@ router.post('/join-requests/:id/accept', requireAuth, requireRole('participant')
     if (!joinReq) return res.status(404).json({ error: 'Request not found' });
 
     if (joinReq.team.members[0].user_id !== userId) return res.status(403).json({ error: 'Only leader can accept' });
-    if (joinReq.team.members.length >= 4) return res.status(400).json({ error: 'Team is full' });
+    
+    const maxMembers = joinReq.team.event?.team_size_max || 4;
+    if (joinReq.team.members.length >= maxMembers) return res.status(400).json({ error: `Team is full (maximum ${maxMembers} members allowed).` });
+
+    // Check if candidate is already in any team for this event
+    const candidateMembership = await prisma.teamMember.findFirst({
+      where: {
+        user_id: joinReq.user_id,
+        team: { event_id: joinReq.team.event_id }
+      },
+      include: { team: true }
+    });
+
+    if (candidateMembership) {
+      await prisma.joinRequest.update({ where: { id: reqId }, data: { status: 'REJECTED' } });
+      return res.status(400).json({ error: `This participant has already joined team "${candidateMembership.team.name}".` });
+    }
 
     // Timeline validation
     if (joinReq.team.event) {
       const regStatus = checkRegistrationStatus(joinReq.team.event);
       if (!regStatus.isOpen) {
         return res.status(403).json({ 
-          error: regStatus.message || 'Registration has closed for this event.' 
+          error: regStatus.message || (regStatus.isNotOpenYet ? 'Registration has not started yet.' : 'Registration has closed for this event.'),
+          code: regStatus.isNotOpenYet ? 'REGISTRATION_NOT_OPEN' : 'REGISTRATION_CLOSED',
+          opensAt: regStatus.opensAt,
+          closesAt: regStatus.closesAt
         });
       }
     }
@@ -389,6 +461,42 @@ router.post('/join-requests/:id/reject', requireAuth, requireRole('participant')
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to reject' });
+  }
+});
+
+// Delete team (Leader or Organizer/Admin only)
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const teamId = req.params.id;
+    const userId = (req as any).user.id;
+    const userRole = (req as any).user.role;
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: {
+        members: { orderBy: { id: 'asc' } }
+      }
+    });
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    const isLeader = team.members.length > 0 && team.members[0].user_id === userId;
+    const isPrivileged = userRole === 'organizer' || userRole === 'admin';
+
+    if (!isLeader && !isPrivileged) {
+      return res.status(403).json({ error: 'Only the team leader can delete this team.' });
+    }
+
+    await prisma.team.delete({
+      where: { id: teamId }
+    });
+
+    res.json({ message: 'Team deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting team:', error);
+    res.status(500).json({ error: 'Failed to delete team' });
   }
 });
 

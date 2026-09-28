@@ -12,6 +12,7 @@ export const JoinTeam = () => {
   const [teams, setTeams] = useState<any[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
   const [eventData, setEventData] = useState<EventWithTimeline | null>(null);
+  const [myTeam, setMyTeam] = useState<any | null>(null);
 
   useEffect(() => {
     fetchTeamsAndEvent();
@@ -22,9 +23,10 @@ export const JoinTeam = () => {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [teamsRes, eventRes] = await Promise.allSettled([
+      const [teamsRes, eventRes, myTeamRes] = await Promise.allSettled([
         axios.get('/api/teams/all', { headers: authHeaders }),
-        axios.get('/api/events', { headers: authHeaders })
+        axios.get('/api/events', { headers: authHeaders }),
+        axios.get('/api/teams/my-team', { headers: authHeaders })
       ]);
 
       if (teamsRes.status === 'fulfilled') {
@@ -35,8 +37,13 @@ export const JoinTeam = () => {
           ? eventRes.value.data
           : eventRes.value.data?.events || eventRes.value.data?.data || [];
         if (events.length > 0) {
-          setEventData(events[events.length - 1]);
+          setEventData(events[0]);
+        } else {
+          setEventData(null);
         }
+      }
+      if (myTeamRes.status === 'fulfilled' && myTeamRes.value.data) {
+        setMyTeam(myTeamRes.value.data);
       }
     } catch (err) {
       console.error(err);
@@ -49,6 +56,10 @@ export const JoinTeam = () => {
 
   const handleJoinByCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (myTeam) {
+      setError(`You are already a member of team "${myTeam.name}". You cannot join another team.`);
+      return;
+    }
     if (!regStatus.isOpen) {
       setError(regStatus.message);
       return;
@@ -81,11 +92,36 @@ export const JoinTeam = () => {
     }
   };
 
+  const maxTeamSize = eventData?.team_size_max || 4;
+
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <h1 className="text-3xl md:text-4xl font-black text-bauhaus-text uppercase tracking-tighter mb-8 shadow-white drop-shadow-[2px_2px_0px_rgba(255,255,255,1)]">Join a Team</h1>
       
-      {!teamsLoading && !regStatus.isOpen && (
+      {!teamsLoading && myTeam && (
+        <div className="mb-8 p-5 border-4 border-black bg-cyan-300 text-black shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+          <div className="flex items-start gap-3">
+            <Users className="w-6 h-6 shrink-0 text-black mt-0.5" />
+            <div className="flex-1">
+              <p className="font-black uppercase tracking-wider text-sm">
+                You already belong to a team!
+              </p>
+              <p className="text-sm font-bold mt-1 text-zinc-900">
+                You are currently a member of <span className="underline font-black">"{myTeam.name}"</span>. You cannot join or request to join other teams in this hackathon.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/participant/team')}
+                className="mt-3 inline-block bg-black text-white font-black uppercase text-xs tracking-widest px-4 py-2 border-2 border-black hover:bg-white hover:text-black transition-colors"
+              >
+                Go to My Team Workspace &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!teamsLoading && !myTeam && !regStatus.isOpen && (
         <div className="mb-8 p-4 border-4 border-black bg-yellow-300 text-black flex items-start gap-3 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
           {regStatus.isClosed ? (
             <AlertTriangle className="w-6 h-6 shrink-0 text-red-600 mt-0.5" />
@@ -127,7 +163,7 @@ export const JoinTeam = () => {
                   type="text"
                   required
                   maxLength={6}
-                  disabled={!regStatus.isOpen}
+                  disabled={!regStatus.isOpen || !!myTeam}
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   placeholder="6-DIGIT CODE"
@@ -137,10 +173,16 @@ export const JoinTeam = () => {
 
               <button
                 type="submit"
-                disabled={loading || !regStatus.isOpen}
+                disabled={loading || !regStatus.isOpen || !!myTeam}
                 className="w-full bg-black text-white border-4 border-white font-black uppercase tracking-widest px-6 py-4 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Joining...' : !regStatus.isOpen ? 'Registration Closed' : 'Join Team'}
+                {loading
+                  ? 'Joining...'
+                  : myTeam
+                  ? 'Already in a Team'
+                  : !regStatus.isOpen
+                  ? regStatus.isClosed ? 'Registration Closed' : 'Registration Locked'
+                  : 'Join Team'}
               </button>
             </form>
           </div>
@@ -163,16 +205,31 @@ export const JoinTeam = () => {
                 {teams.map((team: any) => {
                   const leader = team.members[0]?.user;
                   const memberCount = team.members.length;
+                  const isFull = memberCount >= maxTeamSize;
+                  const isUserInThisTeam = myTeam?.id === team.id;
+
                   return (
                     <div key={team.id} className="border-4 border-bauhaus-border p-4 flex flex-col md:flex-row justify-between items-center bg-bauhaus-bg hover:bg-gray-200 dark:bg-gray-800 transition-colors">
                       <div className="mb-4 md:mb-0">
-                        <h3 className="text-xl font-black uppercase tracking-widest">{team.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-black uppercase tracking-widest">{team.name}</h3>
+                          {isUserInThisTeam && (
+                            <span className="bg-black text-white text-[10px] font-black uppercase px-2 py-0.5">Your Team</span>
+                          )}
+                          {isFull && !isUserInThisTeam && (
+                            <span className="bg-red-500 text-white text-[10px] font-black uppercase px-2 py-0.5">Full</span>
+                          )}
+                        </div>
                         <p className="font-bold text-gray-700 dark:text-gray-300">Leader: <span className="text-bauhaus-primary">{leader?.name || 'Unknown'}</span></p>
-                        <p className="font-bold text-gray-700 dark:text-gray-300">Members: {memberCount} / 4</p>
+                        <p className="font-bold text-gray-700 dark:text-gray-300">Members: {memberCount} / {maxTeamSize}</p>
                       </div>
                       <button 
-                        disabled={loading || !regStatus.isOpen}
+                        disabled={loading || !regStatus.isOpen || !!myTeam || isFull}
                         onClick={async () => {
+                          if (myTeam) {
+                            setError(`You are already a member of team "${myTeam.name}".`);
+                            return;
+                          }
                           if (!regStatus.isOpen) {
                             setError(regStatus.message);
                             return;
@@ -191,7 +248,15 @@ export const JoinTeam = () => {
                         }}
                         className="bauhaus-button py-2 px-6 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {!regStatus.isOpen ? 'Registration Closed' : 'Request to Join'}
+                        {isUserInThisTeam
+                          ? 'Current Team'
+                          : isFull
+                          ? 'Team Full'
+                          : myTeam
+                          ? 'In Another Team'
+                          : !regStatus.isOpen
+                          ? 'Registration Closed'
+                          : 'Request to Join'}
                       </button>
                     </div>
                   );
