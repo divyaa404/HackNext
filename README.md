@@ -139,6 +139,8 @@ When first launched or initialized via `npm run setup:master` / first-time wizar
 
 ### ✅ Tier 2 — Judging Integrity & Mathematical Rigor (100% Covered)
 - **Judge Evaluation Studio**: 4-in-1 side-by-side rubric scorecards with integer keyboard input, `[-]` / `[+]` steppers, and inline PDF slide inspection.
+- **Judge Evaluation Progress Tracking**: Real-time progress bars in Admin and Organizer consoles showing exact grading completion per judge (e.g. `8 / 10 projects (80%)`).
+- **Configurable Workload Limits**: Organizer can configure maximum projects per judge ($W_{\text{max}} \le 25$) directly from the assignment control bar.
 - **Weighted Rubrics Customization**: Organizer-defined criteria with real-time validation guaranteeing weights equal exactly 100.0%.
 - **Rigorous Mathematical Evaluation & Normalization Engine**:
   1. **Strict $K$ Feasibility Enforcement**: Hard limit of $\le 25$ projects/judge. $S \times K \le J \times 25$ strictly checked and clamped.
@@ -154,10 +156,16 @@ When first launched or initialized via `npm run setup:master` / first-time wizar
 ---
 
 ### ✅ Tier 3 — Public Community & Certificates (100% Covered)
-- **Community Project Voting**: Authenticated participants can cast **strictly 1 vote per event** with self-team voting restrictions.
-- **Hidden Results During Voting**: Voting tallies remain strictly hidden from public and participants until the organizer officially closes voting and publishes results.
+- **Community Project Voting & Unvote**: Authenticated participants can cast and retract votes (**strictly 1 active vote per event**) with self-team voting restrictions.
+- **Top 3 Community Voting Bonus**: Top-3 community voted projects receive calibrated bonus points upon official voting conclusion, seamlessly factored into final rankings.
+- **Hidden Results During Active Voting**: Voting tallies remain strictly hidden from public and participants until the organizer officially closes voting and publishes results.
 - **Podium & Leaderboard Reveal**: 🥇 Gold, 🥈 Silver, and 🥉 Bronze podium cards and full normalized leaderboard revealed directly on the public homepage.
-- **Parametric Vector Certificate Engine**: Modeled after parametric vector engines (`Certify`), generating high-fidelity vector awards locally on disk at `uploads/certificates/<eventId>/<certNo>.svg`.
+- **Interactive Certificate Studio & Customizer**:
+  - Live SVG canvas editor with clickable coordinates ($X, Y$) and alignment crosshairs.
+  - 1-Click Alignment Presets (`Center 600, 325`, `Top Center`, `Lower`, `Left`, `Right`).
+  - Template card gallery with instant high-resolution vector **Preview** modals.
+  - Automatic template configuration initialization and custom background image uploads.
+- **Self-Contained Offline SVGs**: Uploaded background templates are automatically converted to inline **Base64 Data URIs** inside generated SVGs for 100% portable, standalone offline rendering.
 - **Cryptographic SHA-256 Signature**: Every certificate embeds an immutable SHA-256 checksum calculated from recipient identity, event, award tier, and timestamp.
 - **Public Verification Endpoint**: Public offline verification portal at `/verify/certificate/:id` dynamically re-computes and verifies authenticity.
 - **Safety Prerequisite Toggle**: The event edit toggle `show_certificates` can **strictly only be enabled** after certificates have been generated for the event.

@@ -39,8 +39,9 @@ flowchart TD
 - **Zero Native Alerts**: All modals and toasts use custom `UIModal.tsx` components.
 
 ### 3.2 Certificate Generation Studio
-- **Architecture Reference**: Modeled after `D:\college\PROJECTS\Certify` parameterization engine.
-- **Vector Engine**: Pure mathematical SVG rendering on the backend, generating vector certificates with zero external font or binary dependencies.
+- **Architecture Reference**: Modeled after `Certify` parameterization engine.
+- **Interactive Visual Canvas**: Live SVG preview with clickable coordinate positioning ($X, Y$), alignment guide crosshairs, and 1-click alignment presets (`Center 600, 325`, `Top Center`, `Lower`, `Left`, `Right`).
+- **Vector Engine & Standalone Base64 Embedding**: Pure mathematical SVG rendering on the backend. Uploaded background templates are converted to inline Base64 Data URIs so exported SVG certificates are 100% standalone, offline-ready, and never break when viewed outside the server.
 - **Cryptographic Verification**: Every certificate embeds an immutable SHA-256 integrity hash calculated from recipient name, team, event, award title, and issuance timestamp.
 - **Public Checksum Endpoint**: Anyone can verify validity offline via `/verify/certificate/:id` or API `/api/certificates/verify/:certNo`.
 - **Toggle Safety Rule**: The event-level `show_certificates` toggle can **only** be activated after certificates have been generated.
@@ -50,13 +51,15 @@ flowchart TD
   1. `Registration` (Participant onboarding and team formation)
   2. `Project Submission` (Repository and metadata submission before deadline)
   3. `Evaluation` (Judge assignment, criteria rubric grading, and Z-score normalization)
-  4. `Community Voting` (Title & description gallery with strict 1-vote constraint)
+  4. `Community Voting` (Title & description gallery with strict 1-vote constraint and unvote capability; top-3 voted projects receive calibrated bonus points upon voting close)
   5. `Result Out` (Podium reveal, certificates, and final leaderboard)
 - **Live Extension Controls**: Organizers can click `+1 Hour` extension or `Close Phase Now` on any active round.
 
 ### 3.4 Adaptive Dynamic Judging & Normalization
-- **Scale-Aware Assignment**: Dynamically calculates consensus depth $K$ ($1 \le K \le 3$) based on submissions $S$ vs. available judges $J$.
-- **Z-Score Cross-Judge Normalization**: Rescales judge scores to target $\mu=65, \sigma=15$ to eradicate grading bias.
+- **Scale-Aware Assignment**: Dynamically calculates consensus depth $K$ ($1 \le K \le 3$) based on submissions $S$ vs. available judges $J$, with configurable max projects per judge ($W_{\text{max}} \le 25$).
+- **Deterministic Seeded Distribution**: Uses Mulberry32 PRNG seed-based algorithm for reproducible, balanced judge pairings.
+- **Real-Time Evaluation Progress**: Dashboard progress bars display real-time evaluation counts per judge (e.g. `8/10 projects (80%)`).
+- **Z-Score Cross-Judge Normalization**: Rescales judge scores to target $\mu=65, \sigma=15$ with a zero-variance safety fallback ($z=0.0$ when $\sigma=0$) to eliminate human grading bias.
 - **Strict Role Isolation**: Peer judge score access is blocked at the routing layer (returns HTTP 403).
 
 ### 3.5 Full Server Portability & Disaster Recovery

@@ -126,8 +126,16 @@ erDiagram
 | `created_at` | DateTime | Timestamp of cast vote |
 
 ### 2.9 CertificateTemplate & Certificate
-- **CertificateTemplate**: Configurable SVG layout definition for `WINNER_1ST`, `WINNER_2ND`, `WINNER_3RD`, `PARTICIPANT`, and custom tracks.
-- **Certificate**: Generated recipient vector award with cryptographic SHA-256 integrity hash, unique `certificate_no` (e.g. `HN-2026-WIN1-ABCD1234`), local filesystem path, and public verification at `/verify/certificate/:id`.
+- **CertificateTemplate**:
+  | Field | Type | Description |
+  |---|---|---|
+  | `id` | UUID (PK) | Unique template category identifier |
+  | `event_id` | UUID (FK) | Reference to Event |
+  | `type` | String | Category type code (`WINNER_1`, `WINNER_2`, `WINNER_3`, `PARTICIPANT`, `CUSTOM`) |
+  | `title` | String | Award display title (e.g. *1st Place Winner*, *Best UI/UX Design*) |
+  | `template_image_url` | String? | Uploaded custom background image path or default template |
+  | `config` | JSON | Coordinate & typography settings (`name_x`, `name_y`, `name_font_size`, `name_color`, `font_family`, `text_align`, `primary_color`, `badge_title`, `subtitle`) |
+- **Certificate**: Generated recipient vector award with cryptographic SHA-256 integrity hash, unique `certificate_no` (e.g. `HNX-2026-ABCD1234`), local filesystem path, and public verification at `/verify/certificate/:id`.
 
 ### 2.10 ResetRequest & AuditLog
 - **ResetRequest**: Offline password reset request with 15-minute expiring cryptographic passkeys.
