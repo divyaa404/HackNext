@@ -145,6 +145,14 @@ export const ManageCertificates = () => {
     }
   };
 
+  const normalizeAnchor = (align?: string): 'start' | 'middle' | 'end' => {
+    if (!align) return 'middle';
+    const a = String(align).toLowerCase().trim();
+    if (a === 'start' || a === 'left') return 'start';
+    if (a === 'end' || a === 'right') return 'end';
+    return 'middle';
+  };
+
   const handleOpenCustomizer = (tmpl: CertificateTemplate) => {
     // Clone template object and ensure config defaults exist
     const cloned = JSON.parse(JSON.stringify(tmpl));
@@ -154,7 +162,7 @@ export const ManageCertificates = () => {
     cloned.config.name_font_size = Number(cloned.config.name_font_size ?? 46);
     cloned.config.name_color = cloned.config.name_color || '#dc2626';
     cloned.config.font_family = cloned.config.font_family || 'Inter';
-    cloned.config.text_align = cloned.config.text_align || 'middle';
+    cloned.config.text_align = normalizeAnchor(cloned.config.text_align);
     cloned.config.primary_color = cloned.config.primary_color || (
       cloned.type === 'WINNER_1' ? '#eab308' : cloned.type === 'WINNER_2' ? '#94a3b8' : cloned.type === 'WINNER_3' ? '#d97706' : '#dc2626'
     );
@@ -688,11 +696,10 @@ export const ManageCertificates = () => {
                   <text
                     x={editingTemplate.config?.name_x ?? 600}
                     y={editingTemplate.config?.name_y ?? 325}
-                    textAnchor={(editingTemplate.config?.text_align as any) || 'middle'}
+                    textAnchor={normalizeAnchor(editingTemplate.config?.text_align)}
                     fontSize={editingTemplate.config?.name_font_size ?? 46}
                     fontWeight="900"
                     fill={editingTemplate.config?.name_color || '#dc2626'}
-                    letterSpacing="1"
                   >
                     Alex Mercer (Sample Recipient)
                   </text>
@@ -1169,11 +1176,10 @@ export const ManageCertificates = () => {
                 <text
                   x={previewTemplate.config?.name_x ?? 600}
                   y={previewTemplate.config?.name_y ?? 325}
-                  textAnchor={(previewTemplate.config?.text_align as any) || 'middle'}
+                  textAnchor={normalizeAnchor(previewTemplate.config?.text_align)}
                   fontSize={previewTemplate.config?.name_font_size ?? 46}
                   fontWeight="900"
                   fill={previewTemplate.config?.name_color || '#dc2626'}
-                  letterSpacing="1"
                 >
                   Alex Mercer (Sample Recipient)
                 </text>

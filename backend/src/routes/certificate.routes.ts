@@ -47,7 +47,7 @@ function generateCertificateSvg(params: {
   const fontFamily = config.font_family || "'Inter', system-ui, -apple-system, sans-serif";
   
   // Map alignment to valid SVG text-anchor
-  const rawAlign = String(config.text_align || 'middle').toLowerCase();
+  const rawAlign = String(config.text_align || 'middle').toLowerCase().trim();
   const textAnchor = (rawAlign === 'start' || rawAlign === 'left') ? 'start' : (rawAlign === 'end' || rawAlign === 'right') ? 'end' : 'middle';
 
   const hasCustomBg = templateImageUrl && templateImageUrl.trim().length > 0 && !templateImageUrl.includes('certificate-default.png');
@@ -71,6 +71,8 @@ function generateCertificateSvg(params: {
       }
     }
   }
+
+  const underlineHalfWidth = Math.min(260, Math.max(120, nameFontSize * 4));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" style="background:#ffffff; font-family: ${fontFamily};">
     <defs>
@@ -110,10 +112,18 @@ function generateCertificateSvg(params: {
       <line x1="350" y1="245" x2="850" y2="245" stroke="#e4e4e7" stroke-width="2"/>
     `}
 
-    <!-- Configurable Recipient Name Overlay -->
-    <text x="${nameX}" y="${nameY}" text-anchor="${textAnchor}" font-size="${nameFontSize}" font-weight="900" fill="${nameColor}" letter-spacing="1">${recipientName}</text>
+    <!-- Configurable Recipient Name Overlay (Centered perfectly at nameX=600) -->
+    <text x="${nameX}" y="${nameY}" text-anchor="${textAnchor}" font-size="${nameFontSize}" font-weight="900" fill="${nameColor}">${recipientName}</text>
     ${!hasCustomBg && nameY <= 360 ? `
-      <line x1="${nameX - Math.min(260, nameFontSize * 5)}" y1="${nameY + 22}" x2="${nameX + Math.min(260, nameFontSize * 5)}" y2="${nameY + 22}" stroke="${primaryColor}" stroke-width="2.5" stroke-dasharray="6 3"/>
+      <line 
+        x1="${textAnchor === 'middle' ? (nameX - underlineHalfWidth) : textAnchor === 'start' ? nameX : (nameX - underlineHalfWidth * 2)}" 
+        y1="${nameY + 20}" 
+        x2="${textAnchor === 'middle' ? (nameX + underlineHalfWidth) : textAnchor === 'start' ? (nameX + underlineHalfWidth * 2) : nameX}" 
+        y2="${nameY + 20}" 
+        stroke="${primaryColor}" 
+        stroke-width="2.5" 
+        stroke-dasharray="6 3"
+      />
     ` : ''}
 
     ${!hasCustomBg ? `
