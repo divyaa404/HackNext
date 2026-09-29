@@ -29,35 +29,35 @@ It is designed to run completely standalone with **zero cloud SaaS, zero CDN dep
 
 ```mermaid
 flowchart TD
-    subgraph Phase 1: Registration & Onboarding
-        A[Organizer Inits Event] --> B[Participants Register Profile]
-        B --> C[Form Teams or Solo Entry]
-        C --> D[Share 6-Digit Invite Codes]
+    subgraph P1 ["Phase 1: Registration and Onboarding"]
+        A["Organizer Inits Event"] --> B["Participants Register Profile"]
+        B --> C["Form Teams or Solo Entry"]
+        C --> D["Share 6-Digit Invite Codes"]
     end
 
-    subgraph Phase 2: Project Submission & Deadline Monitoring
-        D --> E[Draft Project Details & Upload Deck]
-        E --> F[Server-Side Deadline Enforcement]
-        G[Organizer Dashboard] -- "Send Urgent Alert" --> E
+    subgraph P2 ["Phase 2: Project Submission and Deadline Monitoring"]
+        D --> E["Draft Project Details and Upload Deck"]
+        E --> F["Server-Side Deadline Enforcement"]
+        G["Organizer Dashboard"] -- "Send Urgent Alert" --> E
     end
 
-    subgraph Phase 3: Jury Evaluation & Normalization
-        F --> H[Dynamic Multi-Judge Balancing]
-        H --> I[Judge Evaluation Studio & Deck Viewer]
-        I --> J[Weighted Rubrics Scoring: 100%]
-        J --> K[Z-Score Normalization Engine: μ=65, σ=15]
+    subgraph P3 ["Phase 3: Jury Evaluation and Normalization"]
+        F --> H["Dynamic Multi-Judge Balancing"]
+        H --> I["Judge Evaluation Studio and Deck Viewer"]
+        I --> J["Weighted Rubrics Scoring: 100%"]
+        J --> K["Z-Score Normalization Engine: μ=65, σ=15"]
     end
 
-    subgraph Phase 4: Public Gallery & Community Voting
-        F --> L[Sanitized Public Project Ballot]
-        L --> M[Strict 1-Vote Constraint]
-        M --> N[Results Hidden During Voting Window]
+    subgraph P4 ["Phase 4: Public Gallery and Community Voting"]
+        F --> L["Sanitized Public Project Ballot"]
+        L --> M["Strict 1-Vote Constraint"]
+        M --> N["Results Hidden During Voting Window"]
     end
 
-    subgraph Phase 5: Results, Podium & Certificates
-        K & N --> O[Public Results Podium Reveal: 🥇 🥈 🥉]
-        O --> P[Vector SVG Certificate Generation]
-        P --> Q[Public SHA-256 Hash Verification: /verify/certificate/:id]
+    subgraph P5 ["Phase 5: Results, Podium and Certificates"]
+        K & N --> O["Public Results Podium Reveal: 1st, 2nd, 3rd"]
+        O --> P["Vector SVG Certificate Generation"]
+        P --> Q["Public SHA-256 Hash Verification: /verify/certificate/:id"]
     end
 ```
 
@@ -140,9 +140,14 @@ When first launched or initialized via `npm run setup:master` / first-time wizar
 ### ✅ Tier 2 — Judging Integrity & Mathematical Rigor (100% Covered)
 - **Judge Evaluation Studio**: 4-in-1 side-by-side rubric scorecards with integer keyboard input, `[-]` / `[+]` steppers, and inline PDF slide inspection.
 - **Weighted Rubrics Customization**: Organizer-defined criteria with real-time validation guaranteeing weights equal exactly 100.0%.
-- **Adaptive Multi-Judge Balancer**: Dynamically computes optimal consensus depth ($K$) to distribute submissions equally across judges while respecting workload constraints.
-- **Strict Backend Role Isolation**: Judge endpoints determine ownership from authenticated JWT identity; attempting to query peer scores returns `HTTP 403 Forbidden`.
-- **Statistical Z-Score Normalization**: Corrects for harsh vs lenient graders ($\mu=65, \sigma=15$) with **safe zero-variance ($\sigma=0$) fallback handling** to prevent divide-by-zero crashes.
+- **Rigorous Mathematical Evaluation & Normalization Engine**:
+  1. **Strict $K$ Feasibility Enforcement**: Hard limit of $\le 25$ projects/judge. $S \times K \le J \times 25$ strictly checked and clamped.
+  2. **Safe Zero-Variance Rule ($\sigma = 0$)**: When a judge gives identical scores to all assigned projects, $z = 0.0$ (neutral baseline center $65.0$), preventing zero-division errors.
+  3. **Population Standard Deviation ($\sigma$)**: Consistently computes population $\mu = \frac{1}{N}\sum x$ and $\sigma = \sqrt{\frac{1}{N}\sum (x-\mu)^2}$ across the judge's full evaluation set.
+  4. **Clean Normalization vs Display Scaling Separation**: Separates pure mathematical Z-score ($z = (x-\mu)/\sigma$) from presentation display scaling ($S = \text{clamp}(65 + 15z, 0, 100)$).
+  5. **Reproducible Deterministic Assignments**: Mulberry32 PRNG seed-based algorithm guarantees reproducible, balanced judge allocations.
+  6. **End-to-End Mathematical Proof Audit**: Step-by-step audit trace ($x \to \mu \to \sigma \to z \to S \to \bar{S}$) available via interactive UI modals and REST APIs.
+- **Strict Backend Role Isolation**: Judge endpoints determine ownership from authenticated JWT identity; querying peer scores returns `HTTP 403 Forbidden`.
 - **Remaining Teams Submissions Monitor**: Dedicated organizer tab displaying all registered teams that have not submitted, with a 1-click **Notify Team** / **Broadcast Urgent Alert** mechanism.
 - **CSV Data Export**: One-click local generation of CSV score reports, participant rosters, and team records.
 

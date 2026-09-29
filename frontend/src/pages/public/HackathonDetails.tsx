@@ -11,9 +11,11 @@ import {
   CheckCircle2, 
   Users, 
   FileText, 
-  ShieldCheck
+  ShieldCheck,
+  Calculator
 } from 'lucide-react';
 import { UIModal } from '../../components/UIModal';
+import { EvaluationProofModal, ProjectProofData } from '../../components/EvaluationProofModal';
 
 const AnimatedAmount = ({ text }: { text: string }) => {
   const [current, setCurrent] = useState<number | null>(null);
@@ -70,6 +72,7 @@ export const HackathonDetails = () => {
 
   // Results State
   const [resultsData, setResultsData] = useState<any[]>([]);
+  const [selectedProofProject, setSelectedProofProject] = useState<ProjectProofData | null>(null);
 
   // Participant Certificates State
   const [myCertificates, setMyCertificates] = useState<any[]>([]);
@@ -548,11 +551,30 @@ export const HackathonDetails = () => {
 
                     <div className="p-6 pt-0 space-y-4">
                       <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-300 dark:border-zinc-700">
-                        <span className="text-xs font-black uppercase text-zinc-600 dark:text-zinc-400">Jury Score</span>
-                        <span className="text-2xl font-black font-mono text-red-600">{res.totalScore} <span className="text-xs text-zinc-400">/ 100</span></span>
+                        <span className="text-xs font-black uppercase text-zinc-600 dark:text-zinc-400">Normalized Score</span>
+                        <span className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">{typeof res.totalScore === 'number' ? res.totalScore.toFixed(1) : res.totalScore} <span className="text-xs text-zinc-400">/ 100</span></span>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        {res.proof && res.proof.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProofProject({
+                              submissionId: res.id,
+                              title: res.title,
+                              teamName: res.teamName,
+                              rank: res.rank || (i + 1),
+                              rawScoreAvg: res.rawScoreAvg || 0,
+                              zScoreAvg: res.zScoreAvg || 0,
+                              finalScore: res.totalScore || 0,
+                              evaluationsCount: res.evaluationsCount || res.proof.length,
+                              proof: res.proof
+                            })}
+                            className="w-full py-1.5 text-center text-xs font-black uppercase bg-amber-300 hover:bg-amber-400 text-black rounded border-2 border-black flex items-center justify-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition"
+                          >
+                            <Calculator className="w-3.5 h-3.5" /> View Math Proof
+                          </button>
+                        )}
                         {res.repo_url && (
                           <a href={res.repo_url} target="_blank" rel="noreferrer" className="flex-1 py-2 text-center text-xs font-black uppercase bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded border border-black dark:border-zinc-600 flex items-center justify-center gap-1">
                             <ExternalLink className="w-3.5 h-3.5" /> Repo
@@ -769,6 +791,13 @@ export const HackathonDetails = () => {
           </div>
         </UIModal>
       )}
+
+      {/* Proof Modal */}
+      <EvaluationProofModal
+        isOpen={!!selectedProofProject}
+        onClose={() => setSelectedProofProject(null)}
+        project={selectedProofProject}
+      />
 
     </div>
   );

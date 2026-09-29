@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { checkSubmissionStatus } from '../utils/timeline';
+import { generateReproducibleAssignments } from '../utils/evaluation';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -203,14 +204,17 @@ router.post('/assign-equal', requireAuth, requireRole('organizer', 'admin'), asy
     const J = judges.length;
     const S = submissions.length;
 
-    // 5. Adaptive Dynamic Multi-Judge & Workload Balancer
-    // Max humanly realistic evaluation capacity per judge (e.g. 25 projects per judge max)
-    const MAX_WORKLOAD_PER_JUDGE = 25;
+    // 5. Adaptive Dynamic Multi-Judge & Workload Balancer with K-feasibility & seed reproducibility
+    const { k, seed, maxLoadPerJudge } = req.body || {};
+    const maxLoad = Number(maxLoadPerJudge) || 25;
+    const requestedK = k ? Number(k) : Math.min(3, Math.max(1, Math.floor((judges.length * maxLoad) / submissions.length)));
+    const assignmentSeed = seed && String(seed).trim().length > 0 ? String(seed).trim() : `HNX-ASSIGN-${Date.now()}`;
 
-    // Calculate dynamic optimal consensus depth K:
-    // K = floor((J * MAX_WORKLOAD) / S), constrained to 1 <= K <= min(3, J)
-    let dynamicK = Math.floor((J * MAX_WORKLOAD_PER_JUDGE) / S);
-    dynamicK = Math.max(1, Math.min(dynamicK, Math.min(3, J)));
+    const assignmentResult = generateReproducibleAssignments(
+      submissions,
+      judges.map(j => ({ id: j.id })),
+      { k: requestedK, seed: assignmentSeed, maxLoadPerJudge: maxLoad }
+    );
 
     // Clear old assignments for clean re-distribution
     const submissionIds = submissions.map(s => s.id);
@@ -218,63 +222,22 @@ router.post('/assign-equal', requireAuth, requireRole('organizer', 'admin'), asy
       where: { submission_id: { in: submissionIds } }
     });
 
-    // Generate assignments ensuring:
-    // a) Every project gets dynamicK distinct judges
-    // b) No judge gets assigned the same project twice
-    // c) Workload is strictly balanced across all judges without exceeding physical capacity
-    const newAssignments: Array<{ judge_id: string; submission_id: string }> = [];
-
-    // Track assigned counts per judge
-    const judgeWorkload: Record<string, number> = {};
-    judges.forEach(j => { judgeWorkload[j.id] = 0; });
-
-    // Shuffle submissions array using Fisher-Yates for initial unbiased ordering
-    const shuffledSubmissions = [...submissions];
-    for (let i = shuffledSubmissions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledSubmissions[i], shuffledSubmissions[j]] = [shuffledSubmissions[j], shuffledSubmissions[i]];
+    if (assignmentResult.assignments.length > 0) {
+      await prisma.judgeAssignment.createMany({
+        data: assignmentResult.assignments
+      });
     }
 
-    shuffledSubmissions.forEach((sub) => {
-      const assignedForSub = new Set<string>();
-
-      for (let k = 0; k < dynamicK; k++) {
-        // Sort candidate judges by current workload ascending, adding random tiebreaker
-        const candidateJudges = [...judges]
-          .filter(j => !assignedForSub.has(j.id))
-          .sort((a, b) => {
-            const diff = judgeWorkload[a.id] - judgeWorkload[b.id];
-            if (diff !== 0) return diff;
-            return Math.random() - 0.5;
-          });
-
-        if (candidateJudges.length > 0) {
-          const selectedJudge = candidateJudges[0];
-          assignedForSub.add(selectedJudge.id);
-          judgeWorkload[selectedJudge.id]++;
-          newAssignments.push({
-            judge_id: selectedJudge.id,
-            submission_id: sub.id
-          });
-        }
-      }
-    });
-
-    await prisma.judgeAssignment.createMany({
-      data: newAssignments
-    });
-
-    const maxAssignedToAnyJudge = Math.max(...Object.values(judgeWorkload));
-    const minAssignedToAnyJudge = Math.min(...Object.values(judgeWorkload));
-
     res.json({
-      message: `Adaptive assignment engine dynamically calculated optimal consensus depth K = ${dynamicK} judge(s) per project based on ${S} submissions and ${J} judges!`,
-      totalSubmissions: S,
-      totalJudges: J,
-      dynamicJudgesPerProject: dynamicK,
-      totalAssignments: newAssignments.length,
-      avgProjectsPerJudge: Number((newAssignments.length / J).toFixed(1)),
-      workloadMinMax: `${minAssignedToAnyJudge} - ${maxAssignedToAnyJudge} projects/judge`
+      message: `Adaptive assignment engine successfully generated ${assignmentResult.assignments.length} assignments with depth K = ${assignmentResult.feasibility.effectiveK} judge(s)/project (Seed: ${assignmentResult.seed})!`,
+      seed: assignmentResult.seed,
+      feasibility: assignmentResult.feasibility,
+      totalSubmissions: submissions.length,
+      totalJudges: judges.length,
+      dynamicJudgesPerProject: assignmentResult.feasibility.effectiveK,
+      totalAssignments: assignmentResult.assignments.length,
+      avgProjectsPerJudge: Number((assignmentResult.assignments.length / judges.length).toFixed(1)),
+      workloadMinMax: `${assignmentResult.minWorkload} - ${assignmentResult.maxWorkload} projects/judge`
     });
   } catch (error) {
     console.error('Error assigning submissions:', error);

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Trophy, Medal, Award, ExternalLink, RefreshCw } from 'lucide-react';
+import { Trophy, Medal, Award, ExternalLink, RefreshCw, Calculator } from 'lucide-react';
+import { EvaluationProofModal, ProjectProofData } from '../../components/EvaluationProofModal';
 
 export const Results = () => {
-  const [data, setData] = useState<{ eventName?: string; results?: any[] } | null>(null);
+  const [data, setData] = useState<{ eventName?: string; results?: any[]; displayParameters?: any } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedProofProject, setSelectedProofProject] = useState<ProjectProofData | null>(null);
 
   const loadResults = async () => {
     try {
@@ -42,13 +44,13 @@ export const Results = () => {
               {data?.eventName ? `${data.eventName} Results` : 'Hackathon Results & Rankings'}
             </h1>
             <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-400 font-medium mt-1">
-              Final verified scores evaluated across all judging criteria.
+              Statistically normalized Z-score rankings (Population σ, Baseline Mean = 65.0, StdDev = 15.0).
             </p>
           </div>
 
           <button
             onClick={loadResults}
-            className="self-start md:self-auto px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white border-2 border-black dark:border-zinc-600 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition"
+            className="self-start md:self-auto px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white border-2 border-black dark:border-zinc-600 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh</span>
@@ -126,13 +128,33 @@ export const Results = () => {
                 </div>
 
                 {/* Score & Links */}
-                <div className="flex items-center justify-between md:justify-end gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between md:justify-end gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-zinc-200 dark:border-zinc-800 flex-wrap">
                   <div className="text-left md:text-right">
-                    <span className="text-xs font-black uppercase text-zinc-500 block">Score</span>
-                    <span className="text-2xl font-black text-zinc-900 dark:text-white">
-                      {item.totalScore} <span className="text-xs text-zinc-400">/ 100</span>
+                    <span className="text-xs font-black uppercase text-zinc-500 block">Normalized</span>
+                    <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                      {typeof item.totalScore === 'number' ? item.totalScore.toFixed(1) : item.totalScore} <span className="text-xs text-zinc-400">/ 100</span>
                     </span>
                   </div>
+
+                  {item.proof && item.proof.length > 0 && (
+                    <button
+                      onClick={() => setSelectedProofProject({
+                        submissionId: item.id,
+                        title: item.title,
+                        teamName: item.teamName,
+                        rank: item.rank || (index + 1),
+                        rawScoreAvg: item.rawScoreAvg || 0,
+                        zScoreAvg: item.zScoreAvg || 0,
+                        finalScore: item.totalScore || 0,
+                        evaluationsCount: item.evaluationsCount || item.proof.length,
+                        proof: item.proof
+                      })}
+                      className="px-3 py-1.5 bg-amber-300 hover:bg-amber-400 text-black border-2 border-black font-black text-xs uppercase flex items-center gap-1 transition shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
+                    >
+                      <Calculator className="w-3.5 h-3.5" />
+                      <span>Math Proof</span>
+                    </button>
+                  )}
 
                   {item.repo_url && (
                     <a
@@ -151,6 +173,13 @@ export const Results = () => {
           })}
         </div>
       )}
+
+      {/* Proof Modal */}
+      <EvaluationProofModal
+        isOpen={!!selectedProofProject}
+        onClose={() => setSelectedProofProject(null)}
+        project={selectedProofProject}
+      />
     </div>
   );
 };

@@ -1,65 +1,79 @@
-# NORMALIZATION-PROOF.md — Adaptive Scale-Aware Normalization Proof & Verification
+# NORMALIZATION-PROOF.md — Score Normalization Proof & Verification Suite
 
-This document presents the mathematical proof and verification for the **Adaptive Scale-Aware Score Normalization Engine** implemented in `backend/src/routes/organizer.routes.ts` (`GET /api/organizer/events/:id/normalization-proof`).
-
----
-
-## 1. Scale-Aware Dynamic Consensus Proof ($K$ Selection)
-
-The platform dynamically calculates consensus depth $K$ using:
-$$K = \text{clamp}\left( \left\lfloor \frac{J \cdot W_{\text{max}}}{S} \right\rfloor, 1, \min(3, J) \right)$$
-
-### Verification across Scales:
-- **Scenario A ($S=15, J=5$)**: $K = \lfloor (5 \cdot 25) / 15 \rfloor = \lfloor 8.33 \rfloor = 8 \implies$ Capped at $\min(3, 5) = \mathbf{3}$ judges/project.
-- **Scenario B ($S=200, J=10$)**: $K = \lfloor (10 \cdot 25) / 200 \rfloor = \lfloor 1.25 \rfloor = \mathbf{1}$ judge/project (workload = 20 projects/judge).
-- **Scenario C ($S=500, J=25$)**: $K = \lfloor (25 \cdot 25) / 500 \rfloor = \lfloor 1.25 \rfloor = \mathbf{1}$ judge/project.
+This document presents the formal mathematical proofs, edge case verifications, and audit formulas for the HackNext Evaluation Engine.
 
 ---
 
-## 2. Multi-Judge Score Normalization Proof
+## 1. Mathematical Formulation
 
-Consider 2 projects evaluated under Scenario A ($K=2$ judges per project) across 3 judges with distinct strictness profiles:
+### Population Statistics per Judge $j$
+For judge $j$ with assigned submissions $\{x_{1,j}, x_{2,j}, \dots, x_{N_j,j}\}$:
+$$\mu_j = \frac{1}{N_j} \sum_{i=1}^{N_j} x_{i,j}$$
+$$\sigma_j = \sqrt{\frac{1}{N_j} \sum_{i=1}^{N_j} (x_{i,j} - \mu_j)^2}$$
 
-| Project | Assigned Judges | Raw Scores ($R_{i,j}$) | Judge Profiles ($\mu_j, \sigma_j$) |
-|---|---|---|---|
-| **Project Alpha** | Judge A (Strict), Judge B (Lenient) | $R_{\alpha,A} = 6.4$, $R_{\alpha,B} = 8.8$ | $\mu_A = 5.6, \sigma_A = 0.8$<br>$\mu_B = 8.5, \sigma_B = 0.6$ |
-| **Project Beta** | Judge A (Strict), Judge C (Moderate) | $R_{\beta,A} = 4.8$, $R_{\beta,C} = 7.0$ | $\mu_A = 5.6, \sigma_A = 0.8$<br>$\mu_C = 7.0, \sigma_C = 1.0$ |
+### Pure Z-Score Step
+$$z_{i,j} = \begin{cases} \frac{x_{i,j} - \mu_j}{\sigma_j} & \text{if } \sigma_j > 0 \\ 0.0 & \text{if } \sigma_j = 0 \end{cases}$$
 
----
+### Presentation Display Scaling (0–100)
+$$S_{i,j} = \max\left(0, \min\left(100, 65 + 15 \cdot z_{i,j}\right)\right)$$
 
-## 3. Mathematical Execution
-
-Z-Score formula:
-$$z_{i,j} = \frac{R_{i,j} - \mu_j}{\sigma_j} \implies S_{i,j} = \text{clamp}\left((z_{i,j} \cdot 15) + 65, 0, 100\right)$$
-
-Consensus score:
-$$\text{Final Score}_i = \frac{1}{K_i} \sum_{j=1}^{K_i} S_{i,j}$$
-
-### Project Alpha Calculations:
-1. **Judge A** ($R=6.4$): $z = \frac{6.4 - 5.6}{0.8} = +1.00 \implies S_{\alpha,A} = (1.00 \cdot 15) + 65 = 80.00$
-2. **Judge B** ($R=8.8$): $z = \frac{8.8 - 8.5}{0.6} = +0.50 \implies S_{\alpha,B} = (0.50 \cdot 15) + 65 = 72.50$
-3. **Consensus Final Score**: $\text{Final Score}_{\alpha} = \frac{80.00 + 72.50}{2} = \mathbf{76.25}$
-
-### Project Beta Calculations:
-1. **Judge A** ($R=4.8$): $z = \frac{4.8 - 5.6}{0.8} = -1.00 \implies S_{\beta,A} = (-1.00 \cdot 15) + 65 = 50.00$
-2. **Judge C** ($R=7.0$): $z = \frac{7.0 - 7.0}{1.0} = 0.00 \implies S_{\beta,C} = (0.00 \cdot 15) + 65 = 65.00$
-3. **Consensus Final Score**: $\text{Final Score}_{\beta} = \frac{50.00 + 65.00}{2} = \mathbf{57.50}$
+### Project Consensus Aggregate
+For project $i$ evaluated by judge set $J_i$:
+$$\bar{S}_i = \frac{1}{|J_i|} \sum_{j \in J_i} S_{i,j}$$
 
 ---
 
-## 4. Leaderboard Proof Summary Table
+## 2. Step-by-Step Proof Examples
 
-| Rank | Project | Assigned Judges | Avg Raw Score | Individual Normalized Scores ($S_{i,j}$) | Final Consensus Score |
-|---|---|---|---|---|---|
-| **#1** | **Project Alpha** | Judge A, Judge B | 7.60 | [80.00, 72.50] | **76.25** |
-| **#2** | **Project Beta** | Judge A, Judge C | 5.90 | [50.00, 65.00] | **57.50** |
+### Case 1: Standard Evaluation with Varying Strictness
+
+Suppose Judge A (Strict) and Judge B (Lenient) evaluate 3 projects:
+
+- **Judge A Raw Scores**: $[6.0, 7.0, 8.0]$
+  - $\mu_A = \frac{6.0 + 7.0 + 8.0}{3} = 7.00$
+  - $\text{Var}_A = \frac{(6-7)^2 + (7-7)^2 + (8-7)^2}{3} = \frac{2}{3} \approx 0.6667$
+  - $\sigma_A = \sqrt{0.6667} \approx 0.8165$
+
+- **Judge B Raw Scores**: $[8.0, 9.0, 10.0]$
+  - $\mu_B = \frac{8.0 + 9.0 + 10.0}{3} = 9.00$
+  - $\sigma_B = \sqrt{0.6667} \approx 0.8165$
+
+#### Project 1 (Score 6.0 from Judge A, Score 8.0 from Judge B):
+- Judge A: $z_{1,A} = \frac{6.0 - 7.0}{0.8165} = -1.2247 \implies S_{1,A} = \text{clamp}(65 + 15(-1.2247)) = 46.63$
+- Judge B: $z_{1,B} = \frac{8.0 - 9.0}{0.8165} = -1.2247 \implies S_{1,B} = \text{clamp}(65 + 15(-1.2247)) = 46.63$
+- **Final Consensus Score**: $\bar{S}_1 = \frac{46.63 + 46.63}{2} = 46.63$
+
+#### Project 2 (Score 7.0 from Judge A, Score 9.0 from Judge B):
+- Judge A: $z_{2,A} = \frac{7.0 - 7.0}{0.8165} = 0.000 \implies S_{2,A} = 65.00$
+- Judge B: $z_{2,B} = \frac{9.0 - 9.0}{0.8165} = 0.000 \implies S_{2,B} = 65.00$
+- **Final Consensus Score**: $\bar{S}_2 = \frac{65.00 + 65.00}{2} = 65.00$
+
+#### Project 3 (Score 8.0 from Judge A, Score 10.0 from Judge B):
+- Judge A: $z_{3,A} = \frac{8.0 - 7.0}{0.8165} = +1.2247 \implies S_{3,A} = \text{clamp}(65 + 15(1.2247)) = 83.37$
+- Judge B: $z_{3,B} = \frac{10.0 - 9.0}{0.8165} = +1.2247 \implies S_{3,B} = \text{clamp}(65 + 15(1.2247)) = 83.37$
+- **Final Consensus Score**: $\bar{S}_3 = \frac{83.37 + 83.37}{2} = 83.37$
 
 ---
 
-## 5. Live Endpoint Verification
+### Case 2: Zero Variance Safety Verification ($\sigma = 0$)
 
-Organizers can query:
-```http
-GET /api/organizer/events/:eventId/normalization-proof
-```
-The endpoint dynamically computes scale statistics, per-judge statistics ($\mu_j, \sigma_j$), individual $Z$-scores, and final consensus rankings.
+Suppose Judge C awards identical scores of `8.5` to all assigned projects:
+- $\mu_C = 8.50$
+- $\sigma_C = 0.00$
+- By zero-variance rule: $z_{i,C} = 0.000$
+- Scaled score: $S_{i,C} = \text{clamp}(65 + 15(0.000)) = 65.00$
+
+**Result**: Zero division errors are prevented, and the judge's score neither unfairly elevates nor penalizes the project relative to the baseline.
+
+---
+
+## 3. $K$ Feasibility Proof & Enforcement
+
+Let $S$ be total projects, $J$ total judges, and $W_{\text{max}} = 25$ max projects per judge:
+
+$$\text{Capacity } C = J \times 25$$
+$$K_{\text{max}} = \min\left(J, \left\lfloor \frac{C}{S} \right\rfloor\right)$$
+
+- **Scenario 1**: $S = 20, J = 4 \implies C = 100 \implies K_{\text{max}} = \min(4, \lfloor 100/20 \rfloor) = \min(4, 5) = 4$. If requested $K=2$, feasible $\implies K=2$.
+- **Scenario 2**: $S = 60, J = 2 \implies C = 50 \implies K_{\text{max}} = \min(2, \lfloor 50/60 \rfloor) = 0$. Infeasible for any $K \ge 1$ without adding judges or increasing capacity.
+- **Scenario 3**: $S = 50, J = 3 \implies C = 75 \implies K_{\text{max}} = \min(3, \lfloor 75/50 \rfloor) = 1$. If requested $K=2$, engine clamps $K$ to $1$ to guarantee no judge receives $> 25$ projects.

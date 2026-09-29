@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { calculateEventLeaderboardWithProof } from '../utils/evaluation';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -381,15 +382,21 @@ router.get('/users/admins', async (req, res) => {
 router.get('/events/:id/normalization-proof', async (req, res) => {
   try {
     let eventId = req.params.id;
+    let event = null;
 
     if (eventId === 'latest' || !eventId) {
-      const latestEvent = await prisma.event.findFirst({ orderBy: { start_date: 'desc' } });
-      if (!latestEvent) return res.status(404).json({ error: 'No active event found' });
-      eventId = latestEvent.id;
+      event = await prisma.event.findFirst({ orderBy: { start_date: 'desc' } });
+    } else {
+      event = await prisma.event.findUnique({ where: { id: eventId } });
+      if (!event) {
+        event = await prisma.event.findFirst({ where: { slug: eventId } });
+      }
     }
 
+    if (!event) return res.status(404).json({ error: 'No active event found' });
+
     const submissions = await prisma.submission.findMany({
-      where: { event_id: eventId },
+      where: { event_id: event.id, status: 'submitted' },
       include: {
         team: true,
         scores: {
@@ -402,92 +409,25 @@ router.get('/events/:id/normalization-proof', async (req, res) => {
       }
     });
 
-    const judgeScoresMap: Record<string, { judgeName: string; rawScores: number[] }> = {};
-
-    submissions.forEach(sub => {
-      sub.scores.forEach(s => {
-        const judgeId = s.judge_id;
-        const judgeName = s.judge.user.name || s.judge.user.email || s.judge.user.staff_id || judgeId;
-        if (!judgeScoresMap[judgeId]) {
-          judgeScoresMap[judgeId] = { judgeName, rawScores: [] };
-        }
-        judgeScoresMap[judgeId].rawScores.push(s.raw_score);
-      });
-    });
-
-    const judgeStats: Record<string, { judgeName: string; mu: number; sigma: number; count: number }> = {};
-    Object.keys(judgeScoresMap).forEach(jId => {
-      const { judgeName, rawScores } = judgeScoresMap[jId];
-      const count = rawScores.length;
-      const sum = rawScores.reduce((a, b) => a + b, 0);
-      const mu = count > 0 ? sum / count : 0;
-      const variance = count > 0 ? rawScores.reduce((a, b) => a + Math.pow(b - mu, 2), 0) / count : 0;
-      const sigma = Math.sqrt(variance);
-
-      judgeStats[jId] = { judgeName, mu, sigma, count };
-    });
-
-    const globalTargetMean = 65;
-    const globalTargetStd = 15;
-
-    const proofResults = submissions.map(sub => {
-      const teamName = sub.team?.name || 'Unknown Team';
-      const submissionTitle = sub.title;
-
-      let totalRaw = 0;
-      let totalNormalized = 0;
-      const judgeBreakdown: any[] = [];
-
-      sub.scores.forEach(s => {
-        const stats = judgeStats[s.judge_id];
-        totalRaw += s.raw_score;
-
-        let zScore = 0;
-        let normalizedScore = globalTargetMean;
-
-        if (stats && stats.sigma > 0) {
-          zScore = (s.raw_score - stats.mu) / stats.sigma;
-          normalizedScore = Math.min(100, Math.max(0, (zScore * globalTargetStd) + globalTargetMean));
-        } else if (stats) {
-          normalizedScore = Math.min(100, Math.max(0, (s.raw_score + (globalTargetMean - stats.mu)) * 10));
-        }
-
-        totalNormalized += normalizedScore;
-        judgeBreakdown.push({
-          judgeId: s.judge_id,
-          judgeName: stats?.judgeName || 'Unknown Judge',
-          rawScore: s.raw_score,
-          judgeMean: stats ? Number(stats.mu.toFixed(2)) : 0,
-          judgeStdDev: stats ? Number(stats.sigma.toFixed(2)) : 0,
-          zScore: Number(zScore.toFixed(2)),
-          normalizedScore: Number(normalizedScore.toFixed(2))
-        });
-      });
-
-      const avgRawScore = sub.scores.length > 0 ? totalRaw / sub.scores.length : 0;
-      const finalNormalizedScore = sub.scores.length > 0 ? totalNormalized / sub.scores.length : 0;
-
-      return {
-        submissionId: sub.id,
-        teamName,
-        submissionTitle,
-        rawScoreTotal: Number(avgRawScore.toFixed(2)),
-        normalizedScore: Number(finalNormalizedScore.toFixed(2)),
-        judgeEvaluations: judgeBreakdown
-      };
-    });
-
-    proofResults.sort((a, b) => b.normalizedScore - a.normalizedScore);
+    const result = calculateEventLeaderboardWithProof(
+      event.id,
+      event.name,
+      submissions as any
+    );
 
     res.json({
-      eventId,
-      judgeStats: Object.values(judgeStats).map(j => ({
+      eventId: event.id,
+      eventName: event.name,
+      displayParameters: result.displayParameters,
+      judgeStats: Object.values(result.judgeStats).map(j => ({
         judgeName: j.judgeName,
-        mean: Number(j.mu.toFixed(2)),
-        stdDev: Number(j.sigma.toFixed(2)),
+        staffId: j.staffId,
+        mean: j.mu,
+        stdDev: j.sigma,
+        isZeroSigma: j.isZeroSigma,
         reviewsCompleted: j.count
       })),
-      leaderboard: proofResults
+      leaderboard: result.leaderboard
     });
   } catch (error) {
     console.error('Normalization proof calculation error:', error);

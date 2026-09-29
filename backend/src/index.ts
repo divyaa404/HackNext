@@ -20,6 +20,7 @@ import certificateRoutes from './routes/certificate.routes';
 import votingRoutes from './routes/voting.routes';
 import rubricRoutes from './routes/rubrics.routes';
 import judgeRoutes from './routes/judge.routes';
+import evaluationRoutes from './routes/evaluation.routes';
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +47,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/voting', votingRoutes);
 app.use('/api/rubrics', rubricRoutes);
 app.use('/api/judge', judgeRoutes);
+app.use('/api/evaluation', evaluationRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', platform: 'HackNext' });

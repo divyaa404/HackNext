@@ -159,6 +159,8 @@ router.get('/:slug/public/projects', async (req, res) => {
   }
 });
 
+import { calculateEventLeaderboardWithProof } from '../utils/evaluation';
+
 // Get public results / leaderboard
 router.get('/:slug/public/results', async (req, res) => {
   try {
@@ -180,29 +182,39 @@ router.get('/:slug/public/results', async (req, res) => {
       where: { event_id: event.id, status: 'submitted' },
       include: {
         team: { select: { id: true, name: true } },
-        scores: true
+        scores: {
+          include: {
+            judge: {
+              include: {
+                user: { select: { name: true, email: true, staff_id: true } }
+              }
+            }
+          }
+        }
       }
     });
 
-    const results = submissions.map(sub => {
-      const totalScore = sub.scores.reduce((acc, s) => acc + (s.weighted_score || s.raw_score || 0), 0);
-      const avgScore = sub.scores.length > 0 ? totalScore / sub.scores.length : 0;
-      return {
-        id: sub.id,
-        title: sub.title,
-        description: sub.description,
-        repo_url: sub.repo_url,
-        demo_video_url: sub.demo_video_url,
-        teamName: sub.team?.name || 'Unknown Team',
-        totalScore: Math.round(avgScore * 10) / 10,
-        evaluationsCount: sub.scores.length,
-        submitted_at: sub.submitted_at
-      };
-    }).sort((a, b) => b.totalScore - a.totalScore);
+    const proofData = calculateEventLeaderboardWithProof(event.id, event.name, submissions as any);
+
+    const results = proofData.leaderboard.map(sub => ({
+      id: sub.submissionId,
+      title: sub.title,
+      description: sub.description,
+      repo_url: sub.repo_url,
+      demo_video_url: sub.demo_video_url,
+      teamName: sub.teamName,
+      totalScore: sub.finalScore,
+      rawScoreAvg: sub.rawScoreAvg,
+      zScoreAvg: sub.zScoreAvg,
+      evaluationsCount: sub.evaluationsCount,
+      rank: sub.rank,
+      proof: sub.judgeEvaluations
+    }));
 
     res.json({
       eventName: event.name,
-      results
+      results,
+      displayParameters: proofData.displayParameters
     });
   } catch (error) {
     console.error('Public results error:', error);

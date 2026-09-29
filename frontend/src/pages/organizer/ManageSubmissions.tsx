@@ -15,8 +15,10 @@ import {
   AlertTriangle,
   Mail,
   Building2,
-  Phone
+  Phone,
+  Calculator
 } from 'lucide-react';
+import { EvaluationProofModal, ProjectProofData } from '../../components/EvaluationProofModal';
 
 export const ManageSubmissions = () => {
   const [activeTab, setActiveTab] = useState<'submitted' | 'pending'>('submitted');
@@ -46,6 +48,7 @@ export const ManageSubmissions = () => {
   const [showProofModal, setShowProofModal] = useState(false);
   const [proofData, setProofData] = useState<any>(null);
   const [loadingProof, setLoadingProof] = useState(false);
+  const [selectedProofProject, setSelectedProofProject] = useState<ProjectProofData | null>(null);
 
   useEffect(() => {
     loadAllData();
@@ -683,19 +686,45 @@ export const ManageSubmissions = () => {
                           <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Rank</th>
                           <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Team</th>
                           <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Project</th>
-                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Raw Score</th>
-                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/30">Normalized Score</th>
+                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Raw Avg (x̄)</th>
+                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Z-Score (z̄)</th>
+                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/30">Normalized (0-100)</th>
+                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Audit</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y-2 divide-zinc-200 dark:divide-zinc-800">
                         {proofData.leaderboard.map((item: any, rankIdx: number) => (
                           <tr key={item.submissionId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
-                            <td className="px-4 py-3 font-black text-zinc-900 dark:text-white">#{rankIdx + 1}</td>
+                            <td className="px-4 py-3 font-black text-zinc-900 dark:text-white">#{item.rank || rankIdx + 1}</td>
                             <td className="px-4 py-3 font-black text-red-600 dark:text-red-400 uppercase">{item.teamName}</td>
-                            <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200 font-medium">{item.submissionTitle}</td>
-                            <td className="px-4 py-3 text-center text-zinc-500 dark:text-zinc-400 font-mono">{item.rawScoreTotal} / 10</td>
+                            <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200 font-medium">{item.title || item.submissionTitle}</td>
+                            <td className="px-4 py-3 text-center text-zinc-500 dark:text-zinc-400 font-mono">
+                              {typeof item.rawScoreAvg === 'number' ? item.rawScoreAvg.toFixed(2) : (item.rawScoreTotal || '-')}
+                            </td>
+                            <td className="px-4 py-3 text-center font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                              {typeof item.zScoreAvg === 'number' ? (item.zScoreAvg >= 0 ? `+${item.zScoreAvg.toFixed(3)}` : item.zScoreAvg.toFixed(3)) : '-'}
+                            </td>
                             <td className="px-4 py-3 text-center font-black text-red-700 dark:text-red-400 bg-red-50/50 dark:bg-red-950/10 text-base">
-                              {item.normalizedScore} pts
+                              {typeof item.finalScore === 'number' ? item.finalScore.toFixed(2) : (item.normalizedScore || '-')} pts
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedProofProject({
+                                  submissionId: item.submissionId,
+                                  title: item.title || item.submissionTitle,
+                                  teamName: item.teamName,
+                                  rank: item.rank || (rankIdx + 1),
+                                  rawScoreAvg: item.rawScoreAvg || 0,
+                                  zScoreAvg: item.zScoreAvg || 0,
+                                  finalScore: item.finalScore || item.normalizedScore || 0,
+                                  evaluationsCount: item.evaluationsCount || item.judgeEvaluations?.length || 0,
+                                  judgeEvaluations: item.judgeEvaluations
+                                })}
+                                className="px-2.5 py-1 bg-amber-300 hover:bg-amber-400 text-black border border-black font-black text-[11px] uppercase inline-flex items-center gap-1 shadow-[1px_1px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
+                              >
+                                <Calculator className="w-3 h-3" /> Proof
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -717,6 +746,13 @@ export const ManageSubmissions = () => {
           </div>
         </div>
       )}
+
+      {/* Proof Modal */}
+      <EvaluationProofModal
+        isOpen={!!selectedProofProject}
+        onClose={() => setSelectedProofProject(null)}
+        project={selectedProofProject}
+      />
     </div>
   );
 };
