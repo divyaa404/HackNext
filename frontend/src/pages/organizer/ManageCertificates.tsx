@@ -229,15 +229,41 @@ export const ManageCertificates = () => {
     }
   };
 
+  const [previewTemplate, setPreviewTemplate] = useState<CertificateTemplate | null>(null);
+
   const handleAddTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedEventId) return;
+
+    const formattedType = newTemplate.type.trim().toUpperCase().replace(/\s+/g, '_') || 'CUSTOM_AWARD';
+    const payload = {
+      type: formattedType,
+      title: newTemplate.title.trim() || 'Special Recognition Award',
+      template_image_url: newTemplate.template_image_url || '/assets/certificate-default.png',
+      config: {
+        name_x: 600,
+        name_y: 325,
+        name_font_size: 46,
+        name_color: '#dc2626',
+        font_family: 'Inter',
+        text_align: 'middle',
+        primary_color: '#dc2626',
+        badge_title: newTemplate.title.toUpperCase(),
+        subtitle: 'For outstanding innovation and excellence in'
+      }
+    };
+
     try {
-      await axios.post(`/api/certificates/event/${selectedEventId}/templates`, newTemplate, {
+      const res = await axios.post(`/api/certificates/event/${selectedEventId}/templates`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setNewTemplateModal(false);
-      showToast('New template category added!', 'success');
-      loadEventCertificates(selectedEventId);
+      setNewTemplate({ type: 'CUSTOM', title: 'Special Recognition Award', template_image_url: '' });
+      showToast('New template added! Opening customizer...', 'success');
+      await loadEventCertificates(selectedEventId);
+      if (res.data) {
+        handleOpenCustomizer(res.data);
+      }
     } catch (err) {
       showToast('Failed to add template category', 'error');
     }
@@ -421,13 +447,20 @@ export const ManageCertificates = () => {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t-2 border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div className="pt-3 border-t-2 border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+                  <button
+                    onClick={() => setPreviewTemplate(tmpl)}
+                    className="flex-1 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider rounded border border-zinc-300 dark:border-zinc-700 flex items-center justify-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Preview</span>
+                  </button>
                   <button
                     onClick={() => handleOpenCustomizer(tmpl)}
-                    className="w-full py-2 bg-black dark:bg-white text-white dark:text-black font-black text-xs uppercase tracking-wider rounded flex items-center justify-center gap-1.5 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition"
+                    className="flex-1 py-2 bg-black dark:bg-white text-white dark:text-black font-black text-xs uppercase tracking-wider rounded flex items-center justify-center gap-1 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition"
                   >
                     <Sliders className="w-3.5 h-3.5" />
-                    <span>Customize Coordinates</span>
+                    <span>Customize</span>
                   </button>
                 </div>
               </div>
@@ -629,6 +662,28 @@ export const ManageCertificates = () => {
                     </>
                   )}
 
+                  {/* Alignment Crosshairs Guide */}
+                  <line
+                    x1="0"
+                    y1={editingTemplate.config?.name_y ?? 325}
+                    x2="1200"
+                    y2={editingTemplate.config?.name_y ?? 325}
+                    stroke="#dc2626"
+                    strokeDasharray="4 4"
+                    strokeWidth="1.5"
+                    opacity="0.4"
+                  />
+                  <line
+                    x1={editingTemplate.config?.name_x ?? 600}
+                    y1="0"
+                    x2={editingTemplate.config?.name_x ?? 600}
+                    y2="800"
+                    stroke="#dc2626"
+                    strokeDasharray="4 4"
+                    strokeWidth="1.5"
+                    opacity="0.4"
+                  />
+
                   {/* Recipient Name Preview Overlay */}
                   <text
                     x={editingTemplate.config?.name_x ?? 600}
@@ -642,6 +697,61 @@ export const ManageCertificates = () => {
                     Alex Mercer (Sample Recipient)
                   </text>
                 </svg>
+              </div>
+
+              {/* Quick Alignment Presets */}
+              <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg border-2 border-black dark:border-zinc-700 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-black uppercase text-zinc-700 dark:text-zinc-300 mr-1">Presets:</span>
+                <button
+                  type="button"
+                  onClick={() => setEditingTemplate({
+                    ...editingTemplate,
+                    config: { ...editingTemplate.config, name_x: 600, name_y: 325, text_align: 'middle' }
+                  })}
+                  className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-zinc-900 border border-black dark:border-zinc-600 rounded hover:bg-zinc-200"
+                >
+                  Center (600, 325)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingTemplate({
+                    ...editingTemplate,
+                    config: { ...editingTemplate.config, name_x: 600, name_y: 250, text_align: 'middle' }
+                  })}
+                  className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-zinc-900 border border-black dark:border-zinc-600 rounded hover:bg-zinc-200"
+                >
+                  Top Center (600, 250)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingTemplate({
+                    ...editingTemplate,
+                    config: { ...editingTemplate.config, name_x: 600, name_y: 420, text_align: 'middle' }
+                  })}
+                  className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-zinc-900 border border-black dark:border-zinc-600 rounded hover:bg-zinc-200"
+                >
+                  Lower (600, 420)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingTemplate({
+                    ...editingTemplate,
+                    config: { ...editingTemplate.config, name_x: 250, name_y: 325, text_align: 'start' }
+                  })}
+                  className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-zinc-900 border border-black dark:border-zinc-600 rounded hover:bg-zinc-200"
+                >
+                  Left Align (250)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingTemplate({
+                    ...editingTemplate,
+                    config: { ...editingTemplate.config, name_x: 950, name_y: 325, text_align: 'end' }
+                  })}
+                  className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-zinc-900 border border-black dark:border-zinc-600 rounded hover:bg-zinc-200"
+                >
+                  Right Align (950)
+                </button>
               </div>
             </div>
 
@@ -985,6 +1095,108 @@ export const ManageCertificates = () => {
                 )}
                 <button
                   onClick={() => setPreviewCert(null)}
+                  className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider rounded"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </UIModal>
+      )}
+
+      {/* Preview Template Modal */}
+      {previewTemplate && (
+        <UIModal
+          isOpen={!!previewTemplate}
+          onClose={() => setPreviewTemplate(null)}
+          title={`Template Preview: ${previewTemplate.title} (${previewTemplate.type})`}
+          maxWidth="max-w-4xl"
+        >
+          <div className="space-y-4">
+            <div className="border-4 border-black dark:border-white rounded-lg overflow-hidden bg-white shadow-lg">
+              <svg
+                viewBox="0 0 1200 800"
+                className="w-full h-auto block"
+                style={{ fontFamily: previewTemplate.config?.font_family || 'Inter' }}
+              >
+                {previewTemplate.template_image_url && !previewTemplate.template_image_url.includes('certificate-default.png') ? (
+                  <image href={previewTemplate.template_image_url} x="0" y="0" width="1200" height="800" preserveAspectRatio="none" />
+                ) : (
+                  <>
+                    <rect x="20" y="20" width="1160" height="760" fill="#ffffff" stroke="#18181b" strokeWidth="8"/>
+                    <rect x="35" y="35" width="1130" height="730" fill="#fafafa" stroke={previewTemplate.config?.primary_color || '#dc2626'} strokeWidth="4"/>
+                    <rect x="45" y="45" width="1110" height="710" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2"/>
+                    
+                    <polygon points="20,20 100,20 20,100" fill={previewTemplate.config?.primary_color || '#dc2626'} />
+                    <polygon points="1180,20 1100,20 1180,100" fill={previewTemplate.config?.primary_color || '#dc2626'} />
+                    <polygon points="20,780 100,780 20,700" fill="#18181b" />
+                    <polygon points="1180,780 1100,780 1180,700" fill="#18181b" />
+
+                    <g transform="translate(600, 110)">
+                      <rect x="-180" y="-20" width="360" height="40" fill={previewTemplate.config?.primary_color || '#dc2626'} stroke="#18181b" strokeWidth="3" rx="4"/>
+                      <text x="0" y="7" textAnchor="middle" fontSize="16" fontWeight="900" fill="#ffffff" letterSpacing="3">
+                        {previewTemplate.config?.badge_title || previewTemplate.title.toUpperCase()}
+                      </text>
+                    </g>
+
+                    <text x="600" y="190" textAnchor="middle" fontSize="40" fontWeight="900" fill="#18181b" letterSpacing="4">HACKNEXT CERTIFICATE</text>
+                    <text x="600" y="225" textAnchor="middle" fontSize="16" fontWeight="700" fill="#71717a" letterSpacing="2">THIS CERTIFICATE IS PROUDLY PRESENTED TO</text>
+                    <line x1="350" y1="245" x2="850" y2="245" stroke="#e4e4e7" strokeWidth="2"/>
+
+                    <text x="600" y="410" textAnchor="middle" fontSize="20" fontWeight="600" fill="#3f3f46">
+                      {previewTemplate.config?.subtitle || 'For outstanding active participation at'}
+                    </text>
+                    <text x="600" y="455" textAnchor="middle" fontSize="32" fontWeight="900" fill="#18181b">
+                      {currentEvent?.name || 'HackNext Hackathon 2026'}
+                    </text>
+
+                    <g transform="translate(240, 640)">
+                      <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" strokeWidth="2"/>
+                      <text x="0" y="-15" textAnchor="middle" fontSize="16" fontWeight="900" fill="#18181b">DATE ISSUED</text>
+                    </g>
+                    <g transform="translate(600, 640)">
+                      <circle cx="0" cy="0" r="45" fill="#fafafa" stroke={previewTemplate.config?.primary_color || '#dc2626'} strokeWidth="4"/>
+                      <text x="0" y="6" textAnchor="middle" fontSize="13" fontWeight="900" fill={previewTemplate.config?.primary_color || '#dc2626'}>★ ★ ★</text>
+                    </g>
+                    <g transform="translate(960, 640)">
+                      <line x1="-100" y1="0" x2="100" y2="0" stroke="#18181b" strokeWidth="2"/>
+                      <text x="0" y="-15" textAnchor="middle" fontSize="16" fontWeight="900" fill="#18181b">ORGANIZER</text>
+                    </g>
+                  </>
+                )}
+
+                <text
+                  x={previewTemplate.config?.name_x ?? 600}
+                  y={previewTemplate.config?.name_y ?? 325}
+                  textAnchor={(previewTemplate.config?.text_align as any) || 'middle'}
+                  fontSize={previewTemplate.config?.name_font_size ?? 46}
+                  fontWeight="900"
+                  fill={previewTemplate.config?.name_color || '#dc2626'}
+                  letterSpacing="1"
+                >
+                  Alex Mercer (Sample Recipient)
+                </text>
+              </svg>
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <div className="text-xs font-mono text-zinc-500">
+                Coords: X={previewTemplate.config?.name_x ?? 600}, Y={previewTemplate.config?.name_y ?? 325} | Size: {previewTemplate.config?.name_font_size ?? 46}px
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const tmpl = previewTemplate;
+                    setPreviewTemplate(null);
+                    handleOpenCustomizer(tmpl);
+                  }}
+                  className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black font-black text-xs uppercase tracking-wider rounded"
+                >
+                  Edit Coordinates
+                </button>
+                <button
+                  onClick={() => setPreviewTemplate(null)}
                   className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider rounded"
                 >
                   Close

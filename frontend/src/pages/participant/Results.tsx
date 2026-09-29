@@ -130,10 +130,17 @@ export const Results = () => {
                 {/* Score & Links */}
                 <div className="flex items-center justify-between md:justify-end gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-zinc-200 dark:border-zinc-800 flex-wrap">
                   <div className="text-left md:text-right">
-                    <span className="text-xs font-black uppercase text-zinc-500 block">Normalized</span>
+                    <span className="text-xs font-black uppercase text-zinc-500 block">
+                      {item.communityVoteBonus > 0 ? 'Final (+Bonus)' : 'Normalized'}
+                    </span>
                     <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
                       {typeof item.totalScore === 'number' ? item.totalScore.toFixed(1) : item.totalScore} <span className="text-xs text-zinc-400">/ 100</span>
                     </span>
+                    {item.communityVoteBonus > 0 && (
+                      <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 block">
+                        +{item.communityVoteBonus.toFixed(1)} vote bonus
+                      </span>
+                    )}
                   </div>
 
                   {item.proof && item.proof.length > 0 && (
@@ -145,6 +152,11 @@ export const Results = () => {
                         rank: item.rank || (index + 1),
                         rawScoreAvg: item.rawScoreAvg || 0,
                         zScoreAvg: item.zScoreAvg || 0,
+                        juryScore: item.juryScore,
+                        communityVotesCount: item.communityVotesCount,
+                        communityVoteRank: item.communityVoteRank,
+                        communityVoteBonus: item.communityVoteBonus,
+                        isVotingBonusApplied: item.isVotingBonusApplied,
                         finalScore: item.totalScore || 0,
                         evaluationsCount: item.evaluationsCount || item.proof.length,
                         proof: item.proof

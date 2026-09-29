@@ -16,14 +16,19 @@ import {
   Mail,
   Building2,
   Phone,
-  Calculator
+  Calculator,
+  HelpCircle,
+  Sliders,
+  ShieldCheck
 } from 'lucide-react';
 import { EvaluationProofModal, ProjectProofData } from '../../components/EvaluationProofModal';
+import { UIModal } from '../../components/UIModal';
 
 export const ManageSubmissions = () => {
   const [activeTab, setActiveTab] = useState<'submitted' | 'pending'>('submitted');
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [pendingTeams, setPendingTeams] = useState<any[]>([]);
+  const [judgesList, setJudgesList] = useState<any[]>([]);
   const [stats, setStats] = useState<{ totalTeams: number; submittedTeams: number; pendingTeams: number }>({
     totalTeams: 0,
     submittedTeams: 0,
@@ -32,6 +37,12 @@ export const ManageSubmissions = () => {
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
   const [assignMessage, setAssignMessage] = useState<string | null>(null);
+
+  // Assignment configuration modal state
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedK, setSelectedK] = useState<number>(1);
+  const [maxLoadCap, setMaxLoadCap] = useState<number>(25);
+  const [customSeed, setCustomSeed] = useState<string>(`HNX-SEED-${Date.now()}`);
 
   // Search filter for pending teams
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,8 +67,19 @@ export const ManageSubmissions = () => {
 
   const loadAllData = async () => {
     setLoading(true);
-    await Promise.all([loadSubmissions(), loadPendingTeams()]);
+    await Promise.all([loadSubmissions(), loadPendingTeams(), loadJudges()]);
     setLoading(false);
+  };
+
+  const loadJudges = async () => {
+    try {
+      const res = await axios.get('/api/users?role=judge', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setJudgesList(res.data || []);
+    } catch (err) {
+      console.error('Failed to load judges', err);
+    }
   };
 
   const loadSubmissions = async () => {
@@ -101,15 +123,24 @@ export const ManageSubmissions = () => {
     }
   };
 
-  const handleEqualAssign = async () => {
+  const handleEqualAssign = async (kVal?: number, maxCapVal?: number, seedVal?: string) => {
     setAssigning(true);
     setAssignMessage(null);
 
+    const kToUse = kVal !== undefined ? kVal : selectedK;
+    const capToUse = maxCapVal !== undefined ? maxCapVal : maxLoadCap;
+    const seedToUse = seedVal || customSeed;
+
     try {
-      const res = await axios.post('/api/submissions/assign-equal', {}, {
+      const res = await axios.post('/api/submissions/assign-equal', {
+        k: kToUse,
+        maxLoadPerJudge: capToUse,
+        seed: seedToUse
+      }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setAssignMessage(res.data.message || 'Submissions equally divided among judges!');
+      setAssignMessage(res.data.message || `Submissions successfully assigned with K=${kToUse} judge(s)/project!`);
+      setAssignModalOpen(false);
       loadSubmissions();
     } catch (err: any) {
       setAssignMessage(err.response?.data?.error || 'Failed to assign submissions');
@@ -198,12 +229,12 @@ export const ManageSubmissions = () => {
               Leaderboard
             </button>
             <button
-              onClick={handleEqualAssign}
-              disabled={assigning || submissions.length === 0}
+              onClick={() => setAssignModalOpen(true)}
+              disabled={submissions.length === 0}
               className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Gavel className="w-4 h-4" />
-              {assigning ? 'Dividing...' : 'Auto-Assign Equally'}
+              <span>Configure &amp; Auto-Assign ({selectedK} Judge{selectedK > 1 ? 's' : ''}/Project)</span>
             </button>
           </div>
         </div>
@@ -233,6 +264,32 @@ export const ManageSubmissions = () => {
             </div>
             <AlertTriangle className="w-6 h-6 text-amber-600" />
           </div>
+        </div>
+
+        {/* Judge Workload & Distribution Strategy Strip */}
+        <div className="bg-zinc-100 dark:bg-zinc-800/90 border-2 border-black dark:border-zinc-700 p-4 mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span className="font-black text-xs uppercase tracking-wider text-zinc-900 dark:text-white">
+                Judge Distribution Strategy: {judgesList.length} Active Judges | {submissions.length} Projects
+              </span>
+            </div>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
+              Target consensus: <strong>{selectedK} judge{selectedK > 1 ? 's' : ''} per project</strong> (~{((submissions.length * selectedK) / Math.max(1, judgesList.length)).toFixed(1)} reviews/judge).
+              {selectedK === judgesList.length && judgesList.length > 1 && (
+                <span className="ml-1 text-amber-600 font-bold">(All {judgesList.length} judges review every project)</span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={() => setAssignModalOpen(true)}
+            disabled={submissions.length === 0}
+            className="px-3 py-1.5 bg-white dark:bg-zinc-900 hover:bg-amber-300 dark:hover:bg-amber-400 hover:text-black text-zinc-900 dark:text-white border-2 border-black font-black text-xs uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] transition shrink-0"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Configure Workload &amp; Auto-Assign</span>
+          </button>
         </div>
       </div>
 
@@ -688,7 +745,7 @@ export const ManageSubmissions = () => {
                           <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Project</th>
                           <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Raw Avg (x̄)</th>
                           <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Z-Score (z̄)</th>
-                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/30">Normalized (0-100)</th>
+                          <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/30">Final Score</th>
                           <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Audit</th>
                         </tr>
                       </thead>
@@ -697,7 +754,14 @@ export const ManageSubmissions = () => {
                           <tr key={item.submissionId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
                             <td className="px-4 py-3 font-black text-zinc-900 dark:text-white">#{item.rank || rankIdx + 1}</td>
                             <td className="px-4 py-3 font-black text-red-600 dark:text-red-400 uppercase">{item.teamName}</td>
-                            <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200 font-medium">{item.title || item.submissionTitle}</td>
+                            <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200 font-medium">
+                              <div>{item.title || item.submissionTitle}</div>
+                              {item.communityVoteBonus > 0 && (
+                                <span className="inline-block mt-0.5 px-1.5 py-0.2 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-mono font-bold rounded border border-emerald-400">
+                                  +{item.communityVoteBonus.toFixed(1)} vote bonus (Rank #{item.communityVoteRank})
+                                </span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-center text-zinc-500 dark:text-zinc-400 font-mono">
                               {typeof item.rawScoreAvg === 'number' ? item.rawScoreAvg.toFixed(2) : (item.rawScoreTotal || '-')}
                             </td>
@@ -717,6 +781,11 @@ export const ManageSubmissions = () => {
                                   rank: item.rank || (rankIdx + 1),
                                   rawScoreAvg: item.rawScoreAvg || 0,
                                   zScoreAvg: item.zScoreAvg || 0,
+                                  juryScore: item.juryScore,
+                                  communityVotesCount: item.communityVotesCount,
+                                  communityVoteRank: item.communityVoteRank,
+                                  communityVoteBonus: item.communityVoteBonus,
+                                  isVotingBonusApplied: item.isVotingBonusApplied,
                                   finalScore: item.finalScore || item.normalizedScore || 0,
                                   evaluationsCount: item.evaluationsCount || item.judgeEvaluations?.length || 0,
                                   judgeEvaluations: item.judgeEvaluations
@@ -745,6 +814,188 @@ export const ManageSubmissions = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Judge Assignment & Workload Configuration Modal */}
+      {assignModalOpen && (
+        <UIModal
+          isOpen={assignModalOpen}
+          onClose={() => setAssignModalOpen(false)}
+          title="Judge Auto-Assignment & Capacity Configuration"
+          type="info"
+          maxWidth="max-w-3xl"
+        >
+          <div className="space-y-6 text-zinc-900 dark:text-zinc-100">
+            {/* Why did all projects get all judges FAQ */}
+            <div className="bg-amber-100 dark:bg-amber-950/40 border-3 border-amber-500 p-4 shadow-[3px_3px_0px_rgba(0,0,0,1)] space-y-2">
+              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 font-black text-xs uppercase tracking-wide">
+                <HelpCircle className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" />
+                <span>Why did 10 projects get all 3 judges? (Understanding Consensus Depth K)</span>
+              </div>
+              <p className="text-xs text-amber-950 dark:text-amber-200 font-medium leading-relaxed">
+                <strong>Judges per Project (K)</strong> controls how many distinct judges evaluate each individual submission.
+                If you have <strong>3 judges</strong> and select <strong>K = 3</strong>, every single project is evaluated by all 3 judges (10 projects × 3 reviews = 30 total reviews ⟹ 10 projects assigned to each judge).
+              </p>
+              <p className="text-xs text-amber-950 dark:text-amber-200 font-bold leading-relaxed">
+                💡 <strong>To divide projects equally among judges:</strong> Select <strong>K = 1 Judge per Project</strong>. The 10 projects will be distributed among the 3 judges (~3 to 4 projects per judge).
+              </p>
+            </div>
+
+            {/* 1. Consensus Depth K Selection */}
+            <div className="space-y-3">
+              <label className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block">
+                1. Select Consensus Depth — Judges per Project (K)
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  {
+                    k: 1,
+                    title: '1 Judge / Project',
+                    subtitle: 'Divided Workload',
+                    desc: `Each project evaluated by 1 judge. Lowest workload (~${(submissions.length / Math.max(1, judgesList.length)).toFixed(1)} proj/judge).`
+                  },
+                  {
+                    k: 2,
+                    title: '2 Judges / Project',
+                    subtitle: 'Dual Consensus (Recommended)',
+                    desc: `Each project evaluated by 2 judges. Balanced rigor (~${((submissions.length * 2) / Math.max(1, judgesList.length)).toFixed(1)} proj/judge).`
+                  },
+                  {
+                    k: Math.max(1, judgesList.length),
+                    title: `${Math.max(1, judgesList.length)} Judges / Project`,
+                    subtitle: 'Full Consensus',
+                    desc: `Every project evaluated by all ${judgesList.length} judges (100% overlap).`
+                  }
+                ].map((opt, idx) => {
+                  const isSelected = selectedK === opt.k;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedK(opt.k)}
+                      className={`p-4 text-left border-3 transition-all flex flex-col justify-between space-y-2 ${
+                        isSelected
+                          ? 'bg-red-50 dark:bg-red-950/40 border-red-600 shadow-[4px_4px_0px_rgba(220,38,38,1)]'
+                          : 'bg-white dark:bg-zinc-800 border-black dark:border-zinc-700 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-sm uppercase">{opt.title}</span>
+                          <span className={`w-3.5 h-3.5 rounded-full border-2 border-black ${isSelected ? 'bg-red-600' : 'bg-white'}`}></span>
+                        </div>
+                        <div className="text-[11px] font-bold text-red-600 dark:text-red-400 mt-0.5">{opt.subtitle}</div>
+                      </div>
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-tight">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Workload Cap & Seed */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block">
+                  2. Maximum Load Cap per Judge (W_max)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={maxLoadCap}
+                    onChange={(e) => setMaxLoadCap(Math.max(1, Number(e.target.value) || 25))}
+                    className="w-full px-3 py-2 border-2 border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm font-bold"
+                  />
+                  <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">proj/judge (Max 25)</span>
+                </div>
+                <p className="text-[10px] text-zinc-500 font-medium">Hard limit: No judge will ever receive more than this number of projects.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block">
+                  3. Assignment Seed (Mulberry32 PRNG)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={customSeed}
+                    onChange={(e) => setCustomSeed(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-black dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCustomSeed(`HNX-SEED-${Date.now()}`)}
+                    className="px-2.5 py-2 bg-zinc-200 dark:bg-zinc-700 border-2 border-black font-black text-xs uppercase hover:bg-zinc-300"
+                    title="Generate new seed"
+                  >
+                    🎲
+                  </button>
+                </div>
+                <p className="text-[10px] text-zinc-500 font-medium">Deterministic seed ensures 100% reproducible allocations.</p>
+              </div>
+            </div>
+
+            {/* 3. Real-Time Feasibility & Workload Calculation Strip */}
+            <div className="bg-zinc-100 dark:bg-zinc-800 border-2 border-black p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <Calculator className="w-4 h-4 text-red-600" />
+                  Live Workload &amp; Capacity Check
+                </span>
+                <span className={`text-[11px] font-black uppercase px-2 py-0.5 border border-black ${
+                  (submissions.length * selectedK) <= (judgesList.length * maxLoadCap)
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {(submissions.length * selectedK) <= (judgesList.length * maxLoadCap) ? 'Feasible (Within Cap)' : 'Exceeds Capacity'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <div className="bg-white dark:bg-zinc-900 p-2 border border-zinc-300 dark:border-zinc-700">
+                  <span className="text-[10px] uppercase font-black text-zinc-500 block">Total Projects</span>
+                  <span className="text-base font-black">{submissions.length}</span>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 p-2 border border-zinc-300 dark:border-zinc-700">
+                  <span className="text-[10px] uppercase font-black text-zinc-500 block">Active Judges</span>
+                  <span className="text-base font-black">{judgesList.length}</span>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 p-2 border border-zinc-300 dark:border-zinc-700">
+                  <span className="text-[10px] uppercase font-black text-zinc-500 block">Total Reviews</span>
+                  <span className="text-base font-black text-red-600">{submissions.length * selectedK}</span>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 p-2 border border-zinc-300 dark:border-zinc-700">
+                  <span className="text-[10px] uppercase font-black text-zinc-500 block">Avg Load / Judge</span>
+                  <span className="text-base font-black text-indigo-600">
+                    {((submissions.length * selectedK) / Math.max(1, judgesList.length)).toFixed(1)} proj
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setAssignModalOpen(false)}
+                className="px-5 py-2.5 bg-zinc-200 hover:bg-zinc-300 text-zinc-900 font-black uppercase text-xs border-2 border-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={assigning || submissions.length === 0}
+                onClick={() => handleEqualAssign()}
+                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-2"
+              >
+                <Gavel className="w-4 h-4" />
+                <span>{assigning ? 'Assigning...' : `Confirm & Assign (K=${selectedK})`}</span>
+              </button>
+            </div>
+          </div>
+        </UIModal>
       )}
 
       {/* Proof Modal */}

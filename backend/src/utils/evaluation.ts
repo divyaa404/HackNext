@@ -237,7 +237,12 @@ export interface ProjectLeaderboardProof {
   evaluationsCount: number;
   rawScoreAvg: number;
   zScoreAvg: number;
-  finalScore: number; // 0-100 scaled score
+  juryScore: number;          // Pure normalized jury score (0-100)
+  communityVotesCount: number; // Total community votes received
+  communityVoteRank?: number | null; // 1, 2, 3 rank in community votes (if any)
+  communityVoteBonus: number; // Bonus points added (+5, +3, +1 or 0)
+  isVotingBonusApplied: boolean; // True only if voting has ended and bonus is active
+  finalScore: number;         // min(100, juryScore + communityVoteBonus)
   rank?: number;
   judgeEvaluations: JudgeScoreEvaluationProof[];
 }
@@ -245,19 +250,28 @@ export interface ProjectLeaderboardProof {
 export interface LeaderboardCalculationResult {
   eventId: string;
   eventName: string;
+  isVotingEnded: boolean;
   displayParameters: {
     targetMean: number;
     targetStdDev: number;
     formula: string;
     populationSigmaNote: string;
     zeroSigmaRule: string;
+    communityVoteBonusNote: string;
   };
   judgeStats: Record<string, JudgeStats>;
   leaderboard: ProjectLeaderboardProof[];
 }
 
+export interface LeaderboardCalculationOptions {
+  isVotingEnded?: boolean;
+  votingBonusTop1?: number;
+  votingBonusTop2?: number;
+  votingBonusTop3?: number;
+}
+
 /**
- * Compute rigorous population Z-score normalization and step-by-step proofs for all submissions in an event
+ * Compute rigorous population Z-score normalization, community voting bonus (Top 3), and step-by-step proofs
  */
 export function calculateEventLeaderboardWithProof(
   eventId: string,
@@ -270,6 +284,8 @@ export function calculateEventLeaderboardWithProof(
     demo_video_url?: string | null;
     pdf_url?: string | null;
     team?: { name?: string };
+    votesCount?: number;
+    _count?: { votes?: number };
     scores: Array<{
       judge_id: string;
       raw_score: number;
@@ -279,10 +295,15 @@ export function calculateEventLeaderboardWithProof(
         user?: { name?: string | null; email?: string | null; staff_id?: string | null };
       };
     }>;
-  }>
+  }>,
+  options: LeaderboardCalculationOptions = {}
 ): LeaderboardCalculationResult {
   const TARGET_MEAN = 65.0;
   const TARGET_STD = 15.0;
+  const isVotingEnded = options.isVotingEnded ?? false;
+  const BONUS_TOP_1 = options.votingBonusTop1 ?? 5.0;
+  const BONUS_TOP_2 = options.votingBonusTop2 ?? 3.0;
+  const BONUS_TOP_3 = options.votingBonusTop3 ?? 1.0;
 
   // 1. Group raw scores per judge
   const judgeScoresMap: Record<string, {
@@ -306,8 +327,6 @@ export function calculateEventLeaderboardWithProof(
   });
 
   // 2. Compute POPULATION statistics (mu and sigma) per judge
-  // mu = (1/N) * sum(x)
-  // sigma = sqrt((1/N) * sum((x - mu)^2))
   const judgeStats: Record<string, JudgeStats> = {};
 
   Object.keys(judgeScoresMap).forEach(jId => {
@@ -334,7 +353,40 @@ export function calculateEventLeaderboardWithProof(
     };
   });
 
-  // 3. Compute per-project Z-scores, scaled display scores, and mathematical proof trace
+  // 3. Determine Community Voting Ranks & Bonuses (Strictly applied ONLY if isVotingEnded is true)
+  const voteCountMap = new Map<string, number>();
+  submissions.forEach(sub => {
+    const count = sub.votesCount ?? sub._count?.votes ?? 0;
+    voteCountMap.set(sub.id, count);
+  });
+
+  const voteRankMap = new Map<string, { rank: number; bonus: number }>();
+
+  if (isVotingEnded) {
+    // Only rank submissions that have at least 1 vote
+    const sortedByVotes = [...submissions]
+      .map(s => ({ id: s.id, votes: voteCountMap.get(s.id) || 0 }))
+      .filter(item => item.votes > 0)
+      .sort((a, b) => b.votes - a.votes);
+
+    // Assign dense ranks for top 3 vote counts
+    const distinctVoteCounts = Array.from(new Set(sortedByVotes.map(v => v.votes)));
+    const top1Votes = distinctVoteCounts[0];
+    const top2Votes = distinctVoteCounts[1];
+    const top3Votes = distinctVoteCounts[2];
+
+    sortedByVotes.forEach(item => {
+      if (top1Votes !== undefined && item.votes === top1Votes) {
+        voteRankMap.set(item.id, { rank: 1, bonus: BONUS_TOP_1 });
+      } else if (top2Votes !== undefined && item.votes === top2Votes) {
+        voteRankMap.set(item.id, { rank: 2, bonus: BONUS_TOP_2 });
+      } else if (top3Votes !== undefined && item.votes === top3Votes) {
+        voteRankMap.set(item.id, { rank: 3, bonus: BONUS_TOP_3 });
+      }
+    });
+  }
+
+  // 4. Compute per-project Z-scores, scaled display scores, and mathematical proof trace
   const leaderboard: ProjectLeaderboardProof[] = submissions.map(sub => {
     const teamName = sub.team?.name || 'Unknown Team';
     const evaluations = sub.scores;
@@ -382,7 +434,15 @@ export function calculateEventLeaderboardWithProof(
     const evalCount = evaluations.length;
     const rawScoreAvg = evalCount > 0 ? sumRaw / evalCount : 0;
     const zScoreAvg = evalCount > 0 ? sumZ / evalCount : 0;
-    const finalScore = evalCount > 0 ? sumDisplay / evalCount : 0;
+    const juryScore = evalCount > 0 ? sumDisplay / evalCount : 0;
+
+    const votesCount = voteCountMap.get(sub.id) || 0;
+    const voteInfo = voteRankMap.get(sub.id);
+    const communityVoteBonus = isVotingEnded && voteInfo ? voteInfo.bonus : 0;
+    const communityVoteRank = isVotingEnded && voteInfo ? voteInfo.rank : null;
+
+    // Final score: min(100, juryScore + communityVoteBonus)
+    const finalScore = Math.min(100, Math.max(0, juryScore + communityVoteBonus));
 
     return {
       submissionId: sub.id,
@@ -395,19 +455,26 @@ export function calculateEventLeaderboardWithProof(
       evaluationsCount: evalCount,
       rawScoreAvg: Number(rawScoreAvg.toFixed(2)),
       zScoreAvg: Number(zScoreAvg.toFixed(4)),
+      juryScore: Number(juryScore.toFixed(2)),
+      communityVotesCount: votesCount,
+      communityVoteRank,
+      communityVoteBonus: Number(communityVoteBonus.toFixed(2)),
+      isVotingBonusApplied: isVotingEnded && communityVoteBonus > 0,
       finalScore: Number(finalScore.toFixed(2)),
       judgeEvaluations
     };
   });
 
-  // Sort descending by finalScore, tie-break by zScoreAvg, then rawScoreAvg
+  // Sort descending by finalScore, tie-break by juryScore, zScoreAvg, rawScoreAvg, then votesCount
   leaderboard.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+    if (b.juryScore !== a.juryScore) return b.juryScore - a.juryScore;
     if (b.zScoreAvg !== a.zScoreAvg) return b.zScoreAvg - a.zScoreAvg;
-    return b.rawScoreAvg - a.rawScoreAvg;
+    if (b.rawScoreAvg !== a.rawScoreAvg) return b.rawScoreAvg - a.rawScoreAvg;
+    return b.communityVotesCount - a.communityVotesCount;
   });
 
-  // Assign ranks
+  // Assign official final ranks
   leaderboard.forEach((item, index) => {
     item.rank = index + 1;
   });
@@ -415,12 +482,18 @@ export function calculateEventLeaderboardWithProof(
   return {
     eventId,
     eventName,
+    isVotingEnded,
     displayParameters: {
       targetMean: TARGET_MEAN,
       targetStdDev: TARGET_STD,
-      formula: 'S = clamp(65 + 15 * z, 0, 100)',
+      formula: isVotingEnded 
+        ? 'Final Score = clamp(Jury Normalized Score + Community Voting Bonus, 0, 100)'
+        : 'S = clamp(65 + 15 * z, 0, 100)',
       populationSigmaNote: 'Population standard deviation sigma = sqrt( (1/N) * sum((x - mu)^2) ) is used across all N assigned project evaluations per judge.',
-      zeroSigmaRule: 'When a judge assigns identical scores to all projects (sigma = 0), z is defined as 0.0, mapping to the neutral baseline mean score of 65.0.'
+      zeroSigmaRule: 'When a judge assigns identical scores to all projects (sigma = 0), z is defined as 0.0, mapping to the neutral baseline mean score of 65.0.',
+      communityVoteBonusNote: isVotingEnded 
+        ? `Community voting concluded. Top 3 voted projects awarded bonus points: 1st place (+${BONUS_TOP_1.toFixed(1)} pts), 2nd place (+${BONUS_TOP_2.toFixed(1)} pts), 3rd place (+${BONUS_TOP_3.toFixed(1)} pts).`
+        : 'Community voting in progress or pending closure. Voting bonus will be calculated and added upon voting conclusion.'
     },
     judgeStats,
     leaderboard

@@ -166,22 +166,37 @@ router.get('/:slug/public/results', async (req, res) => {
   try {
     let event = await prisma.event.findUnique({
       where: { slug: req.params.slug },
-      select: { id: true, show_public_results: true, name: true }
+      include: {
+        timeline_items: { orderBy: { sort_order: 'asc' } }
+      }
     });
 
     if (!event) {
       event = await prisma.event.findFirst({
         orderBy: { start_date: 'desc' },
-        select: { id: true, show_public_results: true, name: true }
+        include: {
+          timeline_items: { orderBy: { sort_order: 'asc' } }
+        }
       });
     }
 
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
+    // Check if community voting has concluded
+    const now = new Date();
+    const votingItem = event.timeline_items?.find(t => 
+      (t.title || '').toLowerCase().includes('voting') || (t.title || '').toLowerCase().includes('community')
+    );
+    const isVotingEnded = Boolean(
+      (votingItem && votingItem.end_datetime && now > new Date(votingItem.end_datetime)) ||
+      (!event.community_voting_open && event.show_public_results)
+    );
+
     const submissions = await prisma.submission.findMany({
       where: { event_id: event.id, status: 'submitted' },
       include: {
         team: { select: { id: true, name: true } },
+        _count: { select: { votes: true } },
         scores: {
           include: {
             judge: {
@@ -194,7 +209,12 @@ router.get('/:slug/public/results', async (req, res) => {
       }
     });
 
-    const proofData = calculateEventLeaderboardWithProof(event.id, event.name, submissions as any);
+    const proofData = calculateEventLeaderboardWithProof(
+      event.id, 
+      event.name, 
+      submissions as any,
+      { isVotingEnded }
+    );
 
     const results = proofData.leaderboard.map(sub => ({
       id: sub.submissionId,
@@ -204,6 +224,11 @@ router.get('/:slug/public/results', async (req, res) => {
       demo_video_url: sub.demo_video_url,
       teamName: sub.teamName,
       totalScore: sub.finalScore,
+      juryScore: sub.juryScore,
+      communityVotesCount: isVotingEnded ? sub.communityVotesCount : undefined,
+      communityVoteRank: sub.communityVoteRank,
+      communityVoteBonus: sub.communityVoteBonus,
+      isVotingBonusApplied: sub.isVotingBonusApplied,
       rawScoreAvg: sub.rawScoreAvg,
       zScoreAvg: sub.zScoreAvg,
       evaluationsCount: sub.evaluationsCount,
@@ -213,6 +238,7 @@ router.get('/:slug/public/results', async (req, res) => {
 
     res.json({
       eventName: event.name,
+      isVotingEnded,
       results,
       displayParameters: proofData.displayParameters
     });

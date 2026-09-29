@@ -23,6 +23,11 @@ export interface ProjectProofData {
   rank?: number;
   rawScoreAvg: number;
   zScoreAvg: number;
+  juryScore?: number;
+  communityVotesCount?: number;
+  communityVoteRank?: number | null;
+  communityVoteBonus?: number;
+  isVotingBonusApplied?: boolean;
   finalScore: number;
   evaluationsCount: number;
   proof?: JudgeProofItem[];
@@ -43,12 +48,13 @@ export const EvaluationProofModal: React.FC<EvaluationProofModalProps> = ({
   if (!project) return null;
 
   const evaluations = project.judgeEvaluations || project.proof || [];
+  const hasVotingBonus = Boolean(project.isVotingBonusApplied || (project.communityVoteBonus && project.communityVoteBonus > 0));
 
   return (
     <UIModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Mathematical Score Normalization Proof"
+      title="Mathematical Score Normalization & Proof"
       type="info"
       maxWidth="max-w-4xl"
     >
@@ -73,7 +79,7 @@ export const EvaluationProofModal: React.FC<EvaluationProofModalProps> = ({
             </div>
             <div className="flex items-center gap-4 bg-white dark:bg-zinc-800 border-2 border-black p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <div className="text-right">
-                <div className="text-xs font-black uppercase text-zinc-500">Final Score</div>
+                <div className="text-xs font-black uppercase text-zinc-500">Final Official Score</div>
                 <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
                   {project.finalScore.toFixed(2)}
                   <span className="text-xs text-zinc-500"> / 100</span>
@@ -82,6 +88,26 @@ export const EvaluationProofModal: React.FC<EvaluationProofModalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Community Voting Bonus Callout (If active & applied) */}
+        {hasVotingBonus && (
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border-3 border-emerald-600 dark:border-emerald-500 rounded flex items-center justify-between gap-3 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">🗳️</span>
+              <div>
+                <div className="text-xs font-black uppercase text-emerald-900 dark:text-emerald-200">
+                  Community Voting Bonus Applied (Top {project.communityVoteRank || 'Award'} in Community Votes)
+                </div>
+                <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                  Jury Normalized Score: <strong>{(project.juryScore ?? (project.finalScore - (project.communityVoteBonus || 0))).toFixed(2)}</strong> + Community Bonus: <strong className="text-emerald-700 dark:text-emerald-300">+{project.communityVoteBonus?.toFixed(1)} pts</strong> = <strong>{project.finalScore.toFixed(2)}</strong>
+                </div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-emerald-600 text-white font-black font-mono text-xs uppercase rounded">
+              +{project.communityVoteBonus?.toFixed(1)} PTS
+            </span>
+          </div>
+        )}
 
         {/* 4 Metrics Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -98,13 +124,15 @@ export const EvaluationProofModal: React.FC<EvaluationProofModalProps> = ({
             <div className={`text-lg font-black ${project.zScoreAvg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
               {project.zScoreAvg >= 0 ? `+${project.zScoreAvg.toFixed(4)}` : project.zScoreAvg.toFixed(4)}
             </div>
-            <div className="text-[10px] text-zinc-500 font-medium">Standard deviations from judge mean</div>
+            <div className="text-[10px] text-zinc-500 font-medium">Population std deviations from mean</div>
           </div>
 
           <div className="bg-zinc-50 dark:bg-zinc-800 border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            <div className="text-xs font-black uppercase text-zinc-500">Scaled Score (0-100)</div>
+            <div className="text-xs font-black uppercase text-zinc-500">
+              {hasVotingBonus ? 'Jury Score (0-100)' : 'Scaled Score (0-100)'}
+            </div>
             <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">
-              {project.finalScore.toFixed(2)}
+              {(project.juryScore ?? project.finalScore).toFixed(2)}
             </div>
             <div className="text-[10px] text-zinc-500 font-medium">clamp(65 + 15·z, 0, 100)</div>
           </div>

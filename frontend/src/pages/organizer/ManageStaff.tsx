@@ -11,10 +11,14 @@ import {
   ShieldCheck, 
   Gavel, 
   Key, 
-  Share2,
-  Trash2,
-  Eye,
-  EyeOff
+  Share2, 
+  Trash2, 
+  Eye, 
+  EyeOff,
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { getPublicOrigin } from '../../utils/origin';
 
@@ -25,6 +29,7 @@ interface ManageStaffProps {
 export const ManageStaff = ({ role }: ManageStaffProps) => {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [judgeProgress, setJudgeProgress] = useState<{ overall: any; judges: any[] } | null>(null);
   const [copiedStaffId, setCopiedStaffId] = useState<string | null>(null);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
@@ -57,11 +62,33 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setStaff(res.data);
+
+      if (role === 'judge') {
+        try {
+          const progRes = await axios.get('/api/evaluation/judges-progress', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          setJudgeProgress(progRes.data);
+        } catch (progErr) {
+          console.error('Failed to load judge progress', progErr);
+        }
+      }
     } catch (err) {
       console.error('Failed to load staff', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getJudgeProgressInfo = (userItem: any) => {
+    if (!judgeProgress || !judgeProgress.judges) return null;
+    return (
+      judgeProgress.judges.find(j => 
+        j.userId === userItem.id || 
+        (j.staffId && j.staffId === userItem.staff_id) || 
+        (j.email && j.email === userItem.email)
+      ) || null
+    );
   };
 
   const handleProvision = async (e: React.FormEvent) => {
@@ -294,6 +321,77 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
         </div>
       </div>
 
+      {/* Live Judge Evaluation Progress Strip (Only for judges) */}
+      {role === 'judge' && judgeProgress && (
+        <div className="bauhaus-card p-6 bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-red-600" />
+                <h3 className="text-lg font-black uppercase tracking-tight text-zinc-900 dark:text-white">
+                  Jury Live Evaluation Progress
+                </h3>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                Live evaluation tracker across all assigned jury members.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-black px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 border-2 border-black dark:border-zinc-700">
+                {judgeProgress.overall?.totalCompletedReviews || 0} / {judgeProgress.overall?.totalAssignedReviews || 0} Reviews Completed
+              </span>
+              <span className="text-xs font-black px-2.5 py-1 bg-red-600 text-white border-2 border-black">
+                {judgeProgress.overall?.completionPercentage || 0}% Done
+              </span>
+            </div>
+          </div>
+
+          {/* Large Overall Progress Bar */}
+          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-5 border-3 border-black overflow-hidden relative shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+            <div 
+              className={`h-full transition-all duration-700 ${
+                (judgeProgress.overall?.completionPercentage || 0) === 100 
+                  ? 'bg-emerald-500' 
+                  : 'bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500'
+              }`}
+              style={{ width: `${judgeProgress.overall?.completionPercentage || 0}%` }}
+            />
+          </div>
+
+          {/* Metrics Tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="bg-zinc-50 dark:bg-zinc-800/80 p-3 border-2 border-black dark:border-zinc-700 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Active Judges</span>
+                <span className="text-xl font-black text-zinc-900 dark:text-white">{judgeProgress.overall?.totalJudges || staff.length}</span>
+              </div>
+              <Gavel className="w-5 h-5 text-zinc-400" />
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800/80 p-3 border-2 border-black dark:border-zinc-700 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Assigned Reviews</span>
+                <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">{judgeProgress.overall?.totalAssignedReviews || 0}</span>
+              </div>
+              <TrendingUp className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800/80 p-3 border-2 border-black dark:border-zinc-700 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Completed Reviews</span>
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{judgeProgress.overall?.totalCompletedReviews || 0}</span>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800/80 p-3 border-2 border-black dark:border-zinc-700 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Pending Reviews</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400">{judgeProgress.overall?.totalPendingReviews || 0}</span>
+              </div>
+              <Clock className="w-5 h-5 text-amber-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Staff Table */}
       <div className="bauhaus-card bg-white dark:bg-zinc-900 border-4 border-black dark:border-white shadow-[6px_6px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.2)] overflow-hidden">
         <div className="overflow-x-auto no-scrollbar">
@@ -309,6 +407,11 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
                 <th className="px-4 py-3.5 text-left text-xs font-black text-zinc-900 dark:text-white uppercase tracking-wider">
                   Designation / Role
                 </th>
+                {role === 'judge' && (
+                  <th className="px-4 py-3.5 text-left text-xs font-black text-zinc-900 dark:text-white uppercase tracking-wider min-w-[200px]">
+                    Evaluation Progress
+                  </th>
+                )}
                 <th className="px-4 py-3.5 text-left text-xs font-black text-zinc-900 dark:text-white uppercase tracking-wider">
                   Temporary Passkey
                 </th>
@@ -323,18 +426,25 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-zinc-500 font-bold uppercase text-xs">
+                  <td colSpan={role === 'judge' ? 7 : 6} className="text-center py-12 text-zinc-500 font-bold uppercase text-xs">
                     Loading {role}s...
                   </td>
                 </tr>
               ) : staff.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-zinc-500 font-bold uppercase text-xs">
+                  <td colSpan={role === 'judge' ? 7 : 6} className="text-center py-12 text-zinc-500 font-bold uppercase text-xs">
                     No {role} accounts provisioned yet.
                   </td>
                 </tr>
               ) : (
-                staff.map(userItem => (
+                staff.map(userItem => {
+                  const prog = role === 'judge' ? getJudgeProgressInfo(userItem) : null;
+                  const assigned = prog?.assignedCount ?? 0;
+                  const evaluated = prog?.evaluatedCount ?? 0;
+                  const pct = prog?.percentage ?? 0;
+                  const progStatus = prog?.status ?? (assigned === 0 ? 'Unassigned' : 'Not Started');
+
+                  return (
                   <tr key={userItem.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
                     
                     {/* Staff ID */}
@@ -401,6 +511,47 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
                         </span>
                       )}
                     </td>
+
+                    {/* Evaluation Progress (Judges Only) */}
+                    {role === 'judge' && (
+                      <td className="px-4 py-4 whitespace-nowrap min-w-[200px]">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-xs font-black text-zinc-900 dark:text-white">
+                              {evaluated} / {assigned} <span className="text-[10px] text-zinc-500 font-normal">({pct}%)</span>
+                            </span>
+                            <span className={`px-1.5 py-0.2 font-mono text-[9px] font-black uppercase rounded border ${
+                              progStatus === 'Completed'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-400'
+                                : progStatus === 'In Progress'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-400'
+                                : progStatus === 'Not Started'
+                                ? 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-400'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-400'
+                            }`}>
+                              {progStatus}
+                            </span>
+                          </div>
+                          <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden border border-zinc-300 dark:border-zinc-700">
+                            <div 
+                              className={`h-full transition-all duration-500 ${
+                                pct === 100 
+                                  ? 'bg-emerald-500' 
+                                  : pct > 0 
+                                  ? 'bg-blue-500' 
+                                  : 'bg-zinc-400'
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          {prog?.avgScoreGiven !== null && prog?.avgScoreGiven !== undefined && (
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              Avg score given: <span className="font-bold text-zinc-800 dark:text-zinc-200">{prog.avgScoreGiven}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )}
 
                     {/* Temporary Passkey Column */}
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -488,8 +639,9 @@ export const ManageStaff = ({ role }: ManageStaffProps) => {
                     </td>
 
                   </tr>
-                ))
-              )}
+                );
+              })
+            )}
             </tbody>
           </table>
         </div>

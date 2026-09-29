@@ -60,7 +60,7 @@ router.get(['/events/:slug/projects', '/event/:slug/projects'], async (req, res)
       description: sub.description,
       teamId: sub.team_id,
       teamName: sub.team?.name || 'Unknown Team',
-      votesCount: (isVotingEnded || !event?.show_public_voting) ? sub._count.votes : undefined
+      votesCount: isVotingEnded ? sub._count.votes : undefined
     }));
 
     // If voting ended, sort by votes descending
@@ -83,7 +83,7 @@ router.get(['/events/:slug/projects', '/event/:slug/projects'], async (req, res)
 });
 
 // 2. Get logged-in user's active vote
-router.get('/events/:eventId/my-vote', requireAuth, async (req, res) => {
+router.get(['/events/:eventId/my-vote', '/event/:eventId/my-vote'], requireAuth, async (req, res) => {
   try {
     const { eventId } = req.params;
     const userId = (req as any).user.id;
@@ -102,9 +102,10 @@ router.get('/events/:eventId/my-vote', requireAuth, async (req, res) => {
 
     res.json(vote ? {
       hasVoted: true,
+      voteId: vote.id,
       projectId: vote.project_id,
-      projectTitle: vote.submission.title,
-      teamName: vote.submission.team?.name,
+      projectTitle: vote.submission?.title,
+      teamName: vote.submission?.team?.name,
       votedAt: vote.created_at
     } : { hasVoted: false });
   } catch (err) {
@@ -113,7 +114,7 @@ router.get('/events/:eventId/my-vote', requireAuth, async (req, res) => {
 });
 
 // 3. Cast a vote for a project (Strictly 1 vote per user per event)
-router.post('/events/:eventId/vote', requireAuth, requireRole('participant'), async (req, res) => {
+router.post(['/events/:eventId/vote', '/event/:eventId/vote'], requireAuth, requireRole('participant'), async (req, res) => {
   try {
     const { eventId } = req.params;
     const { projectId } = req.body;
@@ -191,20 +192,38 @@ router.post('/events/:eventId/vote', requireAuth, requireRole('participant'), as
   }
 });
 
-// 4. Retract vote
-router.delete('/events/:eventId/vote', requireAuth, async (req, res) => {
+// 4. Retract / Unvote endpoint
+router.delete(['/events/:eventId/vote', '/event/:eventId/vote'], requireAuth, async (req, res) => {
   try {
     const { eventId } = req.params;
     const userId = (req as any).user.id;
 
-    await prisma.vote.deleteMany({
+    const result = await prisma.vote.deleteMany({
       where: {
         event_id: eventId,
         user_id: userId
       }
     });
 
-    res.json({ message: 'Vote successfully retracted' });
+    res.json({ message: 'Vote successfully retracted', count: result.count });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retract vote' });
+  }
+});
+
+router.delete('/projects/:submissionId/vote', requireAuth, async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    const userId = (req as any).user.id;
+
+    const result = await prisma.vote.deleteMany({
+      where: {
+        project_id: submissionId,
+        user_id: userId
+      }
+    });
+
+    res.json({ message: 'Vote successfully retracted', count: result.count });
   } catch (err) {
     res.status(500).json({ error: 'Failed to retract vote' });
   }

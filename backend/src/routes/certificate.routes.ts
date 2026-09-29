@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { calculateEventLeaderboardWithProof } from '../utils/evaluation';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
@@ -44,10 +45,32 @@ function generateCertificateSvg(params: {
   const nameFontSize = Number(config.name_font_size ?? 46);
   const nameColor = config.name_color || '#dc2626';
   const fontFamily = config.font_family || "'Inter', system-ui, -apple-system, sans-serif";
-  const textAlign = config.text_align || 'middle';
+  
+  // Map alignment to valid SVG text-anchor
+  const rawAlign = String(config.text_align || 'middle').toLowerCase();
+  const textAnchor = (rawAlign === 'start' || rawAlign === 'left') ? 'start' : (rawAlign === 'end' || rawAlign === 'right') ? 'end' : 'middle';
 
   const hasCustomBg = templateImageUrl && templateImageUrl.trim().length > 0 && !templateImageUrl.includes('certificate-default.png');
   const gradId = `borderGrad_${certNo.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+  // Resolve background image to standalone Base64 Data URI if stored locally in uploads
+  let resolvedBgUri = templateImageUrl || '';
+  if (hasCustomBg && templateImageUrl) {
+    if (templateImageUrl.startsWith('/uploads/')) {
+      const relPath = templateImageUrl.replace(/^\/uploads\//, '');
+      const localFilePath = path.join(__dirname, '../../uploads', relPath);
+      if (fs.existsSync(localFilePath)) {
+        try {
+          const ext = path.extname(localFilePath).toLowerCase().replace('.', '');
+          const mimeType = ext === 'svg' ? 'image/svg+xml' : ext === 'png' ? 'image/png' : 'image/jpeg';
+          const fileBase64 = fs.readFileSync(localFilePath).toString('base64');
+          resolvedBgUri = `data:${mimeType};base64,${fileBase64}`;
+        } catch (e) {
+          console.error('Failed to read local background image file for SVG embed:', e);
+        }
+      }
+    }
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" style="background:#ffffff; font-family: ${fontFamily};">
     <defs>
@@ -59,8 +82,8 @@ function generateCertificateSvg(params: {
     </defs>
 
     ${hasCustomBg ? `
-      <!-- Uploaded Template Background -->
-      <image href="${templateImageUrl}" x="0" y="0" width="1200" height="800" preserveAspectRatio="none" />
+      <!-- Uploaded Template Background (Embedded Base64 / URI) -->
+      <image href="${resolvedBgUri}" x="0" y="0" width="1200" height="800" preserveAspectRatio="none" />
     ` : `
       <!-- Outer Decorative Border -->
       <rect x="20" y="20" width="1160" height="760" fill="#ffffff" stroke="#18181b" stroke-width="8"/>
@@ -83,13 +106,15 @@ function generateCertificateSvg(params: {
       <text x="600" y="190" text-anchor="middle" font-size="40" font-weight="900" fill="#18181b" letter-spacing="4">HACKNEXT CERTIFICATE</text>
       <text x="600" y="225" text-anchor="middle" font-size="16" font-weight="700" fill="#71717a" letter-spacing="2">THIS CERTIFICATE IS PROUDLY PRESENTED TO</text>
 
-      <!-- Decorative Line -->
+      <!-- Decorative Center Line -->
       <line x1="350" y1="245" x2="850" y2="245" stroke="#e4e4e7" stroke-width="2"/>
     `}
 
     <!-- Configurable Recipient Name Overlay -->
-    <text x="${nameX}" y="${nameY}" text-anchor="${textAlign}" font-size="${nameFontSize}" font-weight="900" fill="${nameColor}" letter-spacing="1">${recipientName}</text>
-    ${!hasCustomBg ? `<line x1="${nameX - 300}" y1="${nameY + 30}" x2="${nameX + 300}" y2="${nameY + 30}" stroke="#18181b" stroke-width="3" stroke-dasharray="8 4"/>` : ''}
+    <text x="${nameX}" y="${nameY}" text-anchor="${textAnchor}" font-size="${nameFontSize}" font-weight="900" fill="${nameColor}" letter-spacing="1">${recipientName}</text>
+    ${!hasCustomBg && nameY <= 360 ? `
+      <line x1="${nameX - Math.min(260, nameFontSize * 5)}" y1="${nameY + 22}" x2="${nameX + Math.min(260, nameFontSize * 5)}" y2="${nameY + 22}" stroke="${primaryColor}" stroke-width="2.5" stroke-dasharray="6 3"/>
+    ` : ''}
 
     ${!hasCustomBg ? `
       <!-- Details Paragraph -->
@@ -126,7 +151,7 @@ function generateCertificateSvg(params: {
     ` : ''}
 
     <!-- Bottom Verification ID & Hash -->
-    <g transform="translate(600, 735)">
+    <g transform="translate(600, 740)">
       <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#71717a" letter-spacing="1">
         CERTIFICATE ID: <tspan fill="#18181b" font-weight="900">${certNo}</tspan> • VERIFY AT: <tspan fill="#dc2626">/verify/certificate/${certNo}</tspan>
       </text>
@@ -149,10 +174,10 @@ router.get('/event/:eventId/templates', requireAuth, requireRole('organizer', 'a
     // Default template types if none exist
     if (templates.length === 0) {
       const defaults = [
-        { type: 'WINNER_1', title: '1st Place Winner' },
-        { type: 'WINNER_2', title: '2nd Place Winner' },
-        { type: 'WINNER_3', title: '3rd Place Winner' },
-        { type: 'PARTICIPANT', title: 'Certificate of Participation' }
+        { type: 'WINNER_1', title: '1st Place Winner', primary: '#eab308', badge: '1ST PLACE WINNER', subtitle: 'For securing 1st place award in' },
+        { type: 'WINNER_2', title: '2nd Place Winner', primary: '#94a3b8', badge: '2ND PLACE WINNER', subtitle: 'For securing 2nd place award in' },
+        { type: 'WINNER_3', title: '3rd Place Winner', primary: '#d97706', badge: '3RD PLACE WINNER', subtitle: 'For securing 3rd place award in' },
+        { type: 'PARTICIPANT', title: 'Certificate of Participation', primary: '#dc2626', badge: 'OFFICIAL PARTICIPATION', subtitle: 'For outstanding active participation and project development in' }
       ];
 
       for (const d of defaults) {
@@ -164,9 +189,14 @@ router.get('/event/:eventId/templates', requireAuth, requireRole('organizer', 'a
             template_image_url: '/assets/certificate-default.png',
             config: {
               font_family: 'Inter',
-              name_font_size: 44,
+              name_font_size: 46,
+              name_x: 600,
+              name_y: 325,
               name_color: '#dc2626',
-              text_align: 'center'
+              text_align: 'middle',
+              primary_color: d.primary,
+              badge_title: d.badge,
+              subtitle: d.subtitle
             }
           }
         });
@@ -187,10 +217,27 @@ router.post('/event/:eventId/templates', requireAuth, requireRole('organizer', '
     const { eventId } = req.params;
     const { id, type, title, template_image_url, config } = req.body;
 
+    const standardConfig = config && Object.keys(config).length > 0 ? config : {
+      name_x: 600,
+      name_y: 325,
+      name_font_size: 46,
+      name_color: '#dc2626',
+      font_family: 'Inter',
+      text_align: 'middle',
+      primary_color: '#dc2626',
+      badge_title: (title || 'Special Award').toUpperCase(),
+      subtitle: 'For outstanding innovation and excellence in'
+    };
+
     if (id) {
       const updated = await prisma.certificateTemplate.update({
         where: { id },
-        data: { type, title, template_image_url, config }
+        data: { 
+          type, 
+          title, 
+          template_image_url: template_image_url !== undefined ? template_image_url : '/assets/certificate-default.png', 
+          config: standardConfig 
+        }
       });
       return res.json(updated);
     }
@@ -201,7 +248,7 @@ router.post('/event/:eventId/templates', requireAuth, requireRole('organizer', '
         type: type || 'CUSTOM',
         title: title || 'Special Achievement Award',
         template_image_url: template_image_url || '/assets/certificate-default.png',
-        config: config || {}
+        config: standardConfig
       }
     });
 
@@ -250,11 +297,15 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
+        timeline_items: { orderBy: { sort_order: 'asc' } },
         teams: {
           include: {
             members: { include: { user: true } },
             submissions: {
-              include: { scores: true }
+              include: { 
+                scores: true,
+                _count: { select: { votes: true } }
+              }
             }
           }
         }
@@ -263,23 +314,46 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
 
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
-    // Calculate ranking of teams by average/total score
-    const rankedTeams = event.teams
-      .map(team => {
-        const sub = team.submissions[0];
-        let avgScore = 0;
-        if (sub && sub.scores.length > 0) {
-          const total = sub.scores.reduce((a, b) => a + (b.weighted_score || b.raw_score || 0), 0);
-          avgScore = total / sub.scores.length;
-        }
-        return {
-          team,
-          submission: sub,
-          avgScore
-        };
-      })
-      .filter(t => t.submission)
-      .sort((a, b) => b.avgScore - a.avgScore);
+    // Check if voting ended
+    const now = new Date();
+    const votingItem = event.timeline_items?.find(t => 
+      (t.title || '').toLowerCase().includes('voting') || (t.title || '').toLowerCase().includes('community')
+    );
+    const isVotingEnded = Boolean(
+      (votingItem && votingItem.end_datetime && now > new Date(votingItem.end_datetime)) ||
+      (!event.community_voting_open && event.show_public_results)
+    );
+
+    // Collect all event submissions for leaderboard evaluation
+    const allSubmissions = event.teams.flatMap(t => t.submissions.map(s => ({
+      ...s,
+      team: { name: t.name }
+    })));
+
+    const proofResult = calculateEventLeaderboardWithProof(
+      event.id,
+      event.name,
+      allSubmissions as any,
+      { isVotingEnded }
+    );
+
+    // Map submission rank back to team
+    const subToTeamMap = new Map<string, string>();
+    event.teams.forEach(t => {
+      t.submissions.forEach(s => subToTeamMap.set(s.id, t.id));
+    });
+
+    const rank1Sub = proofResult.leaderboard.find(item => item.rank === 1);
+    const rank2Sub = proofResult.leaderboard.find(item => item.rank === 2);
+    const rank3Sub = proofResult.leaderboard.find(item => item.rank === 3);
+
+    const winner1TeamId = rank1Sub ? subToTeamMap.get(rank1Sub.submissionId) : null;
+    const winner2TeamId = rank2Sub ? subToTeamMap.get(rank2Sub.submissionId) : null;
+    const winner3TeamId = rank3Sub ? subToTeamMap.get(rank3Sub.submissionId) : null;
+
+    const winner1Team = event.teams.find(t => t.id === winner1TeamId);
+    const winner2Team = event.teams.find(t => t.id === winner2TeamId);
+    const winner3Team = event.teams.find(t => t.id === winner3TeamId);
 
     // Ensure event certificates directory exists
     const eventCertDir = path.join(CERTIFICATES_DIR, eventId);
@@ -298,15 +372,10 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
     const tmplMap = new Map<string, any>();
     templates.forEach(t => tmplMap.set(t.type, t));
 
-    // Determine 1st, 2nd, 3rd place winners
-    const winner1Team = rankedTeams[0]?.team;
-    const winner2Team = rankedTeams[1]?.team;
-    const winner3Team = rankedTeams[2]?.team;
-
     for (const teamItem of event.teams) {
-      const isW1 = winner1Team && teamItem.id === winner1Team.id;
-      const isW2 = winner2Team && teamItem.id === winner2Team.id;
-      const isW3 = winner3Team && teamItem.id === winner3Team.id;
+      const isW1 = winner1TeamId && teamItem.id === winner1TeamId;
+      const isW2 = winner2TeamId && teamItem.id === winner2TeamId;
+      const isW3 = winner3TeamId && teamItem.id === winner3TeamId;
 
       let type = 'PARTICIPANT';
       let title = 'Certificate of Participation';
@@ -355,6 +424,9 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
         fs.writeFileSync(svgFilePath, svgContent, 'utf-8');
         const fileUrl = `/uploads/certificates/${eventId}/${certNo}.svg`;
 
+        const teamSub = teamItem.submissions[0];
+        const teamLeaderboardItem = teamSub ? proofResult.leaderboard.find(l => l.submissionId === teamSub.id) : null;
+
         const certRecord = await prisma.certificate.create({
           data: {
             certificate_no: certNo,
@@ -370,7 +442,7 @@ router.post(['/event/:eventId/generate', '/events/:eventId/generate'], requireAu
             file_url: fileUrl,
             signature_hash: signatureHash,
             metadata: {
-              score: rankedTeams.find(t => t.team.id === teamItem.id)?.avgScore || 0,
+              score: teamLeaderboardItem?.finalScore || 0,
               rank: isW1 ? 1 : isW2 ? 2 : isW3 ? 3 : null
             }
           }

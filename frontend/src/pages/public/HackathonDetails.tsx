@@ -12,7 +12,8 @@ import {
   Users, 
   FileText, 
   ShieldCheck,
-  Calculator
+  Calculator,
+  RotateCcw
 } from 'lucide-react';
 import { UIModal } from '../../components/UIModal';
 import { EvaluationProofModal, ProjectProofData } from '../../components/EvaluationProofModal';
@@ -164,6 +165,26 @@ export const HackathonDetails = () => {
       setUserVote(voteRes.data);
     } catch (err: any) {
       showToast(err.response?.data?.error || 'Failed to record vote', 'error');
+    } finally {
+      setIsVoting(false);
+    }
+  };
+
+  const handleUnvote = async () => {
+    if (!user) return;
+    if (user.role !== 'participant') {
+      showToast('Only participants can manage votes.', 'error');
+      return;
+    }
+
+    setIsVoting(true);
+    try {
+      await api.delete(`/voting/events/${event.id}/vote`);
+      showToast('Vote retracted successfully. You can now vote for another project.', 'success');
+      const voteRes = await api.get(`/voting/events/${event.id}/my-vote`);
+      setUserVote(voteRes.data);
+    } catch (err: any) {
+      showToast(err.response?.data?.error || 'Failed to retract vote', 'error');
     } finally {
       setIsVoting(false);
     }
@@ -551,7 +572,14 @@ export const HackathonDetails = () => {
 
                     <div className="p-6 pt-0 space-y-4">
                       <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-300 dark:border-zinc-700">
-                        <span className="text-xs font-black uppercase text-zinc-600 dark:text-zinc-400">Normalized Score</span>
+                        <div>
+                          <span className="text-xs font-black uppercase text-zinc-600 dark:text-zinc-400 block">Final Score</span>
+                          {res.communityVoteBonus > 0 && (
+                            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block">
+                              Includes +{res.communityVoteBonus.toFixed(1)} voting bonus
+                            </span>
+                          )}
+                        </div>
                         <span className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">{typeof res.totalScore === 'number' ? res.totalScore.toFixed(1) : res.totalScore} <span className="text-xs text-zinc-400">/ 100</span></span>
                       </div>
 
@@ -566,6 +594,11 @@ export const HackathonDetails = () => {
                               rank: res.rank || (i + 1),
                               rawScoreAvg: res.rawScoreAvg || 0,
                               zScoreAvg: res.zScoreAvg || 0,
+                              juryScore: res.juryScore,
+                              communityVotesCount: res.communityVotesCount,
+                              communityVoteRank: res.communityVoteRank,
+                              communityVoteBonus: res.communityVoteBonus,
+                              isVotingBonusApplied: res.isVotingBonusApplied,
                               finalScore: res.totalScore || 0,
                               evaluationsCount: res.evaluationsCount || res.proof.length,
                               proof: res.proof
@@ -699,12 +732,25 @@ export const HackathonDetails = () => {
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                   {user && user.role !== 'participant' 
                     ? `Logged in as ${user.role.toUpperCase()} (View Only - voting is exclusive to registered participants).`
-                    : 'Every participant can cast strictly 1 vote for their favorite project.'}
+                    : 'Every participant can cast strictly 1 vote for their favorite project. You can change or retract your vote anytime before voting closes.'}
                 </p>
               </div>
               {userVote?.hasVoted && (
-                <div className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded border border-emerald-500 text-xs font-black uppercase">
-                  ✓ Voted: {userVote.projectTitle}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded border border-emerald-500 text-xs font-black uppercase flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Voted: {userVote.projectTitle}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isVoting}
+                    onClick={handleUnvote}
+                    className="px-2.5 py-1.5 bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 text-xs font-black uppercase rounded border-2 border-red-500 flex items-center gap-1 transition shadow-sm"
+                    title="Retract / cancel active vote"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Unvote</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -730,7 +776,7 @@ export const HackathonDetails = () => {
                       key={proj.id}
                       className={`p-6 bg-zinc-50 dark:bg-zinc-800/80 border-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
                         isVotedForThis 
-                          ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' 
+                          ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]' 
                           : 'border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'
                       }`}
                     >
@@ -739,6 +785,11 @@ export const HackathonDetails = () => {
                           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded">
                             Team: {proj.teamName}
                           </span>
+                          {isVotedForThis && (
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-emerald-600 text-white rounded">
+                              ✓ Your Active Vote
+                            </span>
+                          )}
                           {proj.votesCount !== undefined && (
                             <span className="text-[10px] font-mono font-bold text-red-600">
                               {proj.votesCount} votes
@@ -753,33 +804,48 @@ export const HackathonDetails = () => {
                         </p>
                       </div>
 
-                      <div className="shrink-0 flex items-center">
+                      <div className="shrink-0 flex items-center gap-2">
                         {isStaff ? (
                           <span className="px-3 py-1.5 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-black uppercase tracking-wider rounded border border-zinc-400 dark:border-zinc-600">
                             Staff View
                           </span>
+                        ) : isVotedForThis ? (
+                          <div className="flex items-center gap-2">
+                            <span className="px-3.5 py-2 text-xs font-black uppercase tracking-wider rounded bg-emerald-600 text-white border-2 border-emerald-700 flex items-center gap-1">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Voted</span>
+                            </span>
+                            <button
+                              type="button"
+                              disabled={isVoting}
+                              onClick={handleUnvote}
+                              className="px-3 py-2 text-xs font-black uppercase tracking-wider rounded bg-white hover:bg-red-50 dark:bg-zinc-900 dark:hover:bg-red-950/60 text-red-600 border-2 border-red-500 transition flex items-center gap-1 shadow-sm"
+                              title="Retract / cancel this vote"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Unvote</span>
+                            </button>
+                          </div>
+                        ) : userVote?.hasVoted ? (
+                          <button
+                            type="button"
+                            disabled={isVoting}
+                            onClick={() => handleCastVote(proj.id)}
+                            className="px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded border-2 bg-amber-400 hover:bg-amber-500 text-black border-black transition flex items-center gap-1.5 shadow"
+                            title="Switch vote to this project"
+                          >
+                            <Vote className="w-4 h-4" />
+                            <span>Switch Vote</span>
+                          </button>
                         ) : (
                           <button
                             type="button"
-                            disabled={isVoting || isVotedForThis}
+                            disabled={isVoting}
                             onClick={() => handleCastVote(proj.id)}
-                            className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded border-2 transition flex items-center gap-1.5 ${
-                              isVotedForThis
-                                ? 'bg-emerald-600 text-white border-emerald-700 cursor-default'
-                                : 'bg-black text-white hover:bg-red-600 border-black shadow'
-                            }`}
+                            className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded border-2 bg-black text-white hover:bg-red-600 border-black transition flex items-center gap-1.5 shadow"
                           >
-                            {isVotedForThis ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span>Voted</span>
-                              </>
-                            ) : (
-                              <>
-                                <Vote className="w-4 h-4" />
-                                <span>Vote</span>
-                              </>
-                            )}
+                            <Vote className="w-4 h-4" />
+                            <span>Vote</span>
                           </button>
                         )}
                       </div>
